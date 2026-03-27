@@ -16,6 +16,9 @@ import (
 	producthttp "go-gin-ecommerce/internal/products/http"
 	productrepository "go-gin-ecommerce/internal/products/repository"
 	productservice "go-gin-ecommerce/internal/products/service"
+	promotionhttp "go-gin-ecommerce/internal/promotions/http"
+	promotionrepository "go-gin-ecommerce/internal/promotions/repository"
+	promotionservice "go-gin-ecommerce/internal/promotions/service"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -55,6 +58,9 @@ func NewWithDB(cfg config.Config, logger *slog.Logger, database *gorm.DB) *gin.E
 
 		orderHandler := orderhttp.NewHandler(orderservice.New(orderrepository.New(database)))
 		orderHandler.RegisterRoutes(v1.Group("/orders"))
+
+		promotionHandler := promotionhttp.NewHandler(promotionservice.New(promotionrepository.New(database)))
+		promotionHandler.RegisterRoutes(v1.Group("/promotions"))
 
 		productHandler := producthttp.NewHandler(productservice.New(productrepository.New(database)))
 		productHandler.RegisterRoutes(v1.Group("/products"))
