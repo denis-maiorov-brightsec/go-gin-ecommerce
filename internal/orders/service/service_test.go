@@ -14,27 +14,24 @@ import (
 
 func TestCancelTransitionsPendingOrder(t *testing.T) {
 	repo := &stubRepository{
-		getByIDFn: func(ctx context.Context, id uint) (model.Order, error) {
-			return model.Order{
+		cancelFn: func(ctx context.Context, id uint, updatedAt time.Time) (model.Order, error) {
+			if id != 42 {
+				t.Fatalf("expected order id 42, got %d", id)
+			}
+			if !updatedAt.After(time.Date(2026, time.January, 10, 9, 0, 0, 0, time.UTC)) {
+				t.Fatalf("expected updated_at to advance, got %s", updatedAt)
+			}
+
+			order := model.Order{
 				ID:        id,
-				Status:    "pending",
-				UpdatedAt: time.Date(2026, time.January, 10, 9, 0, 0, 0, time.UTC),
-			}, nil
-		},
-		updateFn: func(ctx context.Context, order *model.Order) error {
+				Status:    "cancelled",
+				UpdatedAt: updatedAt,
+			}
 			if order.Status != "cancelled" {
 				t.Fatalf("expected cancelled status, got %q", order.Status)
 			}
-			if !order.UpdatedAt.After(time.Date(2026, time.January, 10, 9, 0, 0, 0, time.UTC)) {
-				t.Fatalf("expected updated_at to advance, got %s", order.UpdatedAt)
-			}
-
-			return nil
+			return order, nil
 		},
-	}
-	repo.getByIDSequence = []model.Order{
-		{ID: 42, Status: "pending", UpdatedAt: time.Date(2026, time.January, 10, 9, 0, 0, 0, time.UTC)},
-		{ID: 42, Status: "cancelled", UpdatedAt: time.Date(2026, time.January, 10, 10, 0, 0, 0, time.UTC)},
 	}
 
 	service := New(repo)
@@ -46,14 +43,14 @@ func TestCancelTransitionsPendingOrder(t *testing.T) {
 	if order.Status != "cancelled" {
 		t.Fatalf("expected cancelled order, got %#v", order)
 	}
-	if repo.updateCalls != 1 {
-		t.Fatalf("expected one update call, got %d", repo.updateCalls)
+	if repo.cancelCalls != 1 {
+		t.Fatalf("expected one cancel call, got %d", repo.cancelCalls)
 	}
 }
 
 func TestCancelReturnsNotFoundForMissingOrder(t *testing.T) {
 	service := New(&stubRepository{
-		getByIDFn: func(ctx context.Context, id uint) (model.Order, error) {
+		cancelFn: func(ctx context.Context, id uint, updatedAt time.Time) (model.Order, error) {
 			return model.Order{}, repository.ErrNotFound
 		},
 	})
@@ -74,8 +71,8 @@ func TestCancelReturnsNotFoundForMissingOrder(t *testing.T) {
 
 func TestCancelRejectsIneligibleStatus(t *testing.T) {
 	repo := &stubRepository{
-		getByIDFn: func(ctx context.Context, id uint) (model.Order, error) {
-			return model.Order{ID: id, Status: "fulfilled"}, nil
+		cancelFn: func(ctx context.Context, id uint, updatedAt time.Time) (model.Order, error) {
+			return model.Order{}, repository.ErrInvalidTransition
 		},
 	}
 
@@ -91,17 +88,17 @@ func TestCancelRejectsIneligibleStatus(t *testing.T) {
 	if apiErr.Status != 409 || apiErr.Code != "CONFLICT" {
 		t.Fatalf("expected conflict error, got %#v", apiErr)
 	}
-	if repo.updateCalls != 0 {
-		t.Fatalf("expected no update call, got %d", repo.updateCalls)
+	if repo.cancelCalls != 1 {
+		t.Fatalf("expected one cancel call, got %d", repo.cancelCalls)
 	}
 }
 
 type stubRepository struct {
 	getByIDFn       func(context.Context, uint) (model.Order, error)
-	updateFn        func(context.Context, *model.Order) error
+	cancelFn        func(context.Context, uint, time.Time) (model.Order, error)
 	getByIDSequence []model.Order
 	getByIDCalls    int
-	updateCalls     int
+	cancelCalls     int
 }
 
 func (s *stubRepository) List(ctx context.Context, params dto.ListOrdersParams) ([]model.Order, int64, error) {
@@ -120,11 +117,11 @@ func (s *stubRepository) GetByID(ctx context.Context, id uint) (model.Order, err
 	return model.Order{}, nil
 }
 
-func (s *stubRepository) Update(ctx context.Context, order *model.Order) error {
-	s.updateCalls++
-	if s.updateFn != nil {
-		return s.updateFn(ctx, order)
+func (s *stubRepository) Cancel(ctx context.Context, id uint, updatedAt time.Time) (model.Order, error) {
+	s.cancelCalls++
+	if s.cancelFn != nil {
+		return s.cancelFn(ctx, id, updatedAt)
 	}
 
-	return nil
+	return model.Order{}, nil
 }
