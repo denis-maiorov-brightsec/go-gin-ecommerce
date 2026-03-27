@@ -110,6 +110,35 @@ func TestListProductsSupportsPagination(t *testing.T) {
 	}
 }
 
+func TestListProductsPreservesIDOrdering(t *testing.T) {
+	router := testutil.NewRouterWithDB(t)
+
+	for i, body := range []string{
+		`{"name":"Zulu Desk","sku":"SKU-001","price":10,"status":"active"}`,
+		`{"name":"Alpha Desk","sku":"SKU-002","price":20,"status":"active"}`,
+		`{"name":"Middle Desk","sku":"SKU-003","price":30,"status":"draft"}`,
+	} {
+		recorder := performJSONRequest(t, router, http.MethodPost, "/v1/products", body)
+		if recorder.Code != http.StatusCreated {
+			t.Fatalf("expected 201 when creating product %d, got %d with body %s", i+1, recorder.Code, recorder.Body.String())
+		}
+	}
+
+	recorder := performRequest(t, router, http.MethodGet, "/v1/products?page=2&limit=1", "")
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200 when listing paginated products, got %d with body %s", recorder.Code, recorder.Body.String())
+	}
+
+	var response dto.ProductListResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode paginated response: %v", err)
+	}
+
+	if len(response.Items) != 1 || response.Items[0].Name != "Alpha Desk" {
+		t.Fatalf("expected second inserted product on page 2, got %#v", response.Items)
+	}
+}
+
 func TestListProductsClampsLimitToMax(t *testing.T) {
 	router := testutil.NewRouterWithDB(t)
 

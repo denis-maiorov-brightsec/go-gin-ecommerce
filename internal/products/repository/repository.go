@@ -33,6 +33,8 @@ func New(db *gorm.DB) *GormRepository {
 func (r *GormRepository) List(ctx context.Context, params commonpagination.Params) ([]model.Product, int64, error) {
 	return r.list(ctx, params, func(db *gorm.DB) *gorm.DB {
 		return db
+	}, func(db *gorm.DB) *gorm.DB {
+		return db.Order("id ASC")
 	})
 }
 
@@ -41,6 +43,8 @@ func (r *GormRepository) Search(ctx context.Context, query string, params common
 
 	return r.list(ctx, params, func(db *gorm.DB) *gorm.DB {
 		return db.Where("LOWER(name) LIKE ? OR LOWER(sku) LIKE ?", pattern, pattern)
+	}, func(db *gorm.DB) *gorm.DB {
+		return db.Order("LOWER(name) ASC").Order("id ASC")
 	})
 }
 
@@ -91,7 +95,12 @@ func (r *GormRepository) Delete(ctx context.Context, id uint) error {
 	return nil
 }
 
-func (r *GormRepository) list(ctx context.Context, params commonpagination.Params, scope func(*gorm.DB) *gorm.DB) ([]model.Product, int64, error) {
+func (r *GormRepository) list(
+	ctx context.Context,
+	params commonpagination.Params,
+	scope func(*gorm.DB) *gorm.DB,
+	order func(*gorm.DB) *gorm.DB,
+) ([]model.Product, int64, error) {
 	baseQuery := scope(r.db.WithContext(ctx).Model(&model.Product{}))
 
 	var total int64
@@ -100,9 +109,7 @@ func (r *GormRepository) list(ctx context.Context, params commonpagination.Param
 	}
 
 	var products []model.Product
-	if err := scope(r.db.WithContext(ctx)).
-		Order("LOWER(name) ASC").
-		Order("id ASC").
+	if err := order(scope(r.db.WithContext(ctx))).
 		Limit(params.Limit).
 		Offset(params.Offset()).
 		Find(&products).Error; err != nil {
