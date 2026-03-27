@@ -4,6 +4,9 @@ import (
 	"log/slog"
 	"net/http"
 
+	categoryhttp "go-gin-ecommerce/internal/categories/http"
+	categoryrepository "go-gin-ecommerce/internal/categories/repository"
+	categoryservice "go-gin-ecommerce/internal/categories/service"
 	commonapi "go-gin-ecommerce/internal/common/api"
 	"go-gin-ecommerce/internal/platform/config"
 	"go-gin-ecommerce/internal/platform/middleware"
@@ -44,6 +47,9 @@ func NewWithDB(cfg config.Config, logger *slog.Logger, database *gorm.DB) *gin.E
 		c.JSON(http.StatusOK, commonapi.StatusResponse{Status: "ok"})
 	})
 	if database != nil {
+		categoryHandler := categoryhttp.NewHandler(categoryservice.New(categoryrepository.New(database)))
+		categoryHandler.RegisterRoutes(v1.Group("/categories"))
+
 		productHandler := producthttp.NewHandler(productservice.New(productrepository.New(database)))
 		productHandler.RegisterRoutes(v1.Group("/products"))
 	}

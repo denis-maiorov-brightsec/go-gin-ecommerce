@@ -56,6 +56,19 @@ func NewNotFoundError() *Error {
 	}
 }
 
+func NewConflictError(message string, details []ErrorDetail) *Error {
+	if message == "" {
+		message = "Resource conflict"
+	}
+
+	return &Error{
+		Status:  http.StatusConflict,
+		Code:    "CONFLICT",
+		Message: message,
+		Details: details,
+	}
+}
+
 func NewInternalServerError() *Error {
 	return &Error{
 		Status:  http.StatusInternalServerError,
