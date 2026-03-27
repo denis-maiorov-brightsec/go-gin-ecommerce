@@ -27,4 +27,5 @@ Add categories resource to support product grouping.
 - Integration tests cover duplicate slug and not-found paths.
 
 ## Verification
-- Run resource-specific and e2e tests.
+- `go test ./internal/categories/... ./test/integration/...`
+- `go vet ./...`

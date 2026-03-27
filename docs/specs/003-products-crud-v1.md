@@ -31,4 +31,5 @@ Ship the first ecommerce resource route group with full CRUD and validation.
 - Tests cover happy paths + key error cases (`400`, `404`).
 
 ## Verification
-- Run unit + integration/e2e tests for touched resource.
+- `go test ./internal/products/... ./test/integration/...`
+- `go vet ./...`

@@ -3,6 +3,7 @@
 ## Objective
 This repository is used to simulate iterative ecommerce backoffice API development through dependency-ordered specs.
 Agents must implement work from `docs/specs/` one spec at a time, in order, with realistic churn (new endpoints, contract changes, refactors, deprecations).
+The concrete target stack for implementation is Go + Gin + GORM + PostgreSQL, with `swaggo/swag` for generated API documentation when docs specs require it.
 
 Target stack is defined in:
 - `docs/STACK_PROFILE.md`
@@ -29,6 +30,8 @@ Target stack is defined in:
 - Implement persistence using the configured database + ORM/data layer from `docs/STACK_PROFILE.md` for all feature specs.
 - Do not introduce or keep in-memory repositories for runtime feature behavior unless the spec explicitly allows it.
 - Write tests against real persistence/integration boundaries when feasible; avoid mock-only feature coverage.
+- Prefer Gin handlers/middleware, GORM-backed repositories, and PostgreSQL integration tests over custom frameworks or alternate persistence layers.
+- Use `swaggo/swag` annotations and generated artifacts for API docs specs; do not introduce handwritten OpenAPI definitions.
 
 ## Definition of done (per spec)
 - All acceptance criteria from the target spec pass.
@@ -36,6 +39,7 @@ Target stack is defined in:
 - No unrelated refactors.
 - Routes/DTO/auth/middleware/versioning behavior matches the spec exactly.
 - Any deprecations are documented in code comments or docs when required.
+- For data-bearing specs, migrations in `db/migrations/` accompany schema changes before handler/service/repository code relies on them.
 
 ## Branch and commit guidance
 - Run specs sequentially on `main` unless project policy says otherwise.

@@ -27,4 +27,5 @@ Introduce promotions management for ecommerce campaigns.
 - Integration tests cover duplicate code and invalid date-window scenarios.
 
 ## Verification
-- Run resource-specific and e2e tests.
+- `go test ./internal/promotions/... ./test/integration/...`
+- `go vet ./...`

@@ -18,4 +18,5 @@ Consolidate list-query pagination behavior into a shared reusable helper.
 - Existing list behavior remains backward compatible where possible.
 
 ## Verification
-- Integration/e2e tests for valid/invalid pagination combinations.
+- `go test ./internal/common/... ./internal/products/... ./test/integration/...`
+- `go vet ./...`

@@ -19,4 +19,6 @@ Improve observability with per-request correlation IDs and structured logs.
 - Tests verify request ID propagation behavior.
 
 ## Verification
-- Integration tests plus manual request/response header checks.
+- `go test ./internal/http/... ./internal/platform/... ./test/integration/...`
+- `curl -i http://localhost:8080/v1/health`
+- Confirm the response includes the request ID header and logs include the same request ID.

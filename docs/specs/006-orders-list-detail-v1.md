@@ -11,7 +11,7 @@ Introduce order read endpoints with filtering support.
   - `id`, `status`, `customerId`, `createdAt`, `updatedAt`, `items[]`, `totalAmount`
 - List filters:
   - `status`
-  - date range (`from`, `to`) or stack-equivalent query naming
+  - date range query params `from` and `to`
 
 ## Out of scope
 - Order creation workflow.
@@ -23,4 +23,5 @@ Introduce order read endpoints with filtering support.
 - Date filter validation uses spec 002 error envelope.
 
 ## Verification
-- Integration/e2e coverage for filtered list and missing detail paths.
+- `go test ./internal/orders/... ./test/integration/...`
+- `go vet ./...`

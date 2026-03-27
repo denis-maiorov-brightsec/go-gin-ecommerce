@@ -23,4 +23,5 @@ Introduce a realistic contract rename while preserving compatibility during tran
 - Tests cover canonical and alias behavior, including conflict/validation cases.
 
 ## Verification
-- Run products and search integration/e2e suites.
+- `go test ./internal/products/... ./internal/search/... ./test/integration/...`
+- `go vet ./...`

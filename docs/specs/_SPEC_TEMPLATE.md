@@ -18,5 +18,5 @@
 - <Observable criterion>
 
 ## Verification
-- <Exact test command>
+- <Exact Go test/lint command(s)>
 - <Manual/API checks if needed>

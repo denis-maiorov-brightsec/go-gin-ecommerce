@@ -4,9 +4,9 @@
 Standardize request validation and error responses before ecommerce resource APIs expand.
 
 ## Scope
-- Register app-level validation middleware/pipeline.
+- Register Gin app-level validation/binding error handling.
 - Add centralized error handling that normalizes all errors to one response shape.
-- Ensure request schema validation errors are mapped into structured `details`.
+- Ensure Gin binding or validator errors are mapped into structured `details`.
 
 ## Out of scope
 - Request ID injection (added later in spec 011).
@@ -36,7 +36,6 @@ Error response format:
 - Existing happy-path routes still work unchanged.
 
 ## Verification
-- Unit/integration/e2e tests for:
-  - Validation failure path
-  - Not found path
-  - Generic internal error mapping
+- `go test ./internal/http/... ./internal/platform/middleware/... ./test/integration/...`
+- `go vet ./...`
+- Manual/API checks should cover validation failure, not-found, and generic internal error mapping paths.

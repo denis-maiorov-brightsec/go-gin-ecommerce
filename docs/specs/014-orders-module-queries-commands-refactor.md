@@ -17,4 +17,5 @@ Improve internal orders module structure without changing external behavior.
 - Refactor keeps clear boundaries between query and command handlers/services.
 
 ## Verification
-- Run orders-related tests and regression e2e suite.
+- `go test ./internal/orders/... ./test/integration/...`
+- `go vet ./...`

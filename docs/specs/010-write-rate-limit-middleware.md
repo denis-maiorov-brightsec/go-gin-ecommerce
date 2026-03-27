@@ -18,4 +18,5 @@ Protect write-heavy endpoints from abuse using basic rate limiting.
 - Tests validate threshold behavior deterministically.
 
 ## Verification
-- Integration tests for throttled and non-throttled paths.
+- `go test ./internal/platform/... ./internal/products/... ./internal/categories/... ./internal/orders/... ./internal/promotions/... ./test/integration/...`
+- `go vet ./...`

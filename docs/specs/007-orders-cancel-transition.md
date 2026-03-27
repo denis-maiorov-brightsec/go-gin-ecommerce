@@ -19,4 +19,5 @@ Support explicit order cancellation as a controlled state transition.
 - Transition rules are covered by deterministic tests.
 
 ## Verification
-- Integration/e2e tests for valid and invalid transition scenarios.
+- `go test ./internal/orders/... ./test/integration/...`
+- `go vet ./...`

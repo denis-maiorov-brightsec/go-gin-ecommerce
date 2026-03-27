@@ -30,4 +30,5 @@ Harden products API with contract-style integration/e2e coverage after iterative
 - Existing baseline integration/e2e tests continue to pass.
 
 ## Verification
-- Run integration/e2e test command from stack profile.
+- `go test ./internal/products/... ./internal/search/... ./test/integration/...`
+- `go vet ./...`

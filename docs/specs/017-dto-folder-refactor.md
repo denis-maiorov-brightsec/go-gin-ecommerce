@@ -4,7 +4,7 @@
 Apply a late-stage structural refactor to consolidate request DTO/schema definitions.
 
 ## Scope
-- Move request DTO/schema definitions into `/dto` (or stack-equivalent) folders per module.
+- Move request DTO/schema definitions into `/dto` folders per module.
 - Update imports and wiring across products/orders/categories/promotions modules.
 - Keep runtime behavior unchanged.
 
@@ -18,4 +18,5 @@ Apply a late-stage structural refactor to consolidate request DTO/schema definit
 - Folder structure is consistent and discoverable.
 
 ## Verification
-- Run full lint/type-check/test suite.
+- `go vet ./...`
+- `go test ./...`

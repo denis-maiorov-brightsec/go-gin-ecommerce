@@ -19,4 +19,5 @@ Add a lightweight product search endpoint that reuses products service/repositor
 - Tests cover matches/no-matches/validation error cases.
 
 ## Verification
-- Integration/e2e tests for search behavior and edge cases.
+- `go test ./internal/products/... ./internal/search/... ./test/integration/...`
+- `go vet ./...`
