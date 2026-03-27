@@ -40,6 +40,10 @@ func NewWithDB(cfg config.Config, logger *slog.Logger, database *gorm.DB) *gin.E
 	}
 
 	middleware.SetupValidation()
+	writeRateLimiter := middleware.NewWriteRateLimiter(middleware.WriteRateLimiterConfig{
+		Limit:  cfg.EffectiveWriteRateLimitRequests(),
+		Window: cfg.EffectiveWriteRateLimitWindow(),
+	})
 
 	router := gin.New()
 	router.Use(middleware.Recovery(logger))
@@ -57,18 +61,18 @@ func NewWithDB(cfg config.Config, logger *slog.Logger, database *gorm.DB) *gin.E
 		authenticator := platformauth.NewStubAuthenticator()
 
 		categoryHandler := categoryhttp.NewHandler(categoryservice.New(categoryrepository.New(database)))
-		categoryHandler.RegisterRoutes(v1.Group("/categories"))
+		categoryHandler.RegisterRoutes(v1.Group("/categories"), writeRateLimiter)
 
 		orderHandler := orderhttp.NewHandler(orderservice.New(orderrepository.New(database)))
-		orderHandler.RegisterRoutes(v1.Group("/orders"))
+		orderHandler.RegisterRoutes(v1.Group("/orders"), writeRateLimiter)
 
 		promotionHandler := promotionhttp.NewHandler(promotionservice.New(promotionrepository.New(database)))
 		promotionsGroup := v1.Group("/promotions")
 		promotionsGroup.Use(middleware.RequirePermission(authenticator, platformauth.PermissionManagePromotions))
-		promotionHandler.RegisterRoutes(promotionsGroup)
+		promotionHandler.RegisterRoutes(promotionsGroup, writeRateLimiter)
 
 		productHandler := producthttp.NewHandler(productservice.New(productrepository.New(database)))
-		productHandler.RegisterRoutes(v1.Group("/products"))
+		productHandler.RegisterRoutes(v1.Group("/products"), writeRateLimiter)
 	}
 
 	// Keep the root route temporarily for transition while directing clients to /v1.

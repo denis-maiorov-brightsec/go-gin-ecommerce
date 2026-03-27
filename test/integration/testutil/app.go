@@ -24,6 +24,12 @@ func NewRouterWithDB(t *testing.T) *gin.Engine {
 	t.Helper()
 
 	cfg := NewTestConfig(t)
+	return NewRouterWithConfigAndDB(t, cfg)
+}
+
+func NewRouterWithConfigAndDB(t *testing.T, cfg config.Config) *gin.Engine {
+	t.Helper()
+
 	database := NewTestDatabase(t, cfg)
 
 	gin.SetMode(gin.TestMode)

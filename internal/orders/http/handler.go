@@ -25,10 +25,10 @@ func NewHandler(service service.Service) *Handler {
 	return &Handler{service: service}
 }
 
-func (h *Handler) RegisterRoutes(group *gin.RouterGroup) {
+func (h *Handler) RegisterRoutes(group *gin.RouterGroup, writeMiddlewares ...gin.HandlerFunc) {
 	group.GET("", h.List)
 	group.GET("/:id", h.GetByID)
-	group.POST("/:id/cancel", h.Cancel)
+	group.POST("/:id/cancel", append(writeMiddlewares, h.Cancel)...)
 }
 
 func (h *Handler) List(c *gin.Context) {

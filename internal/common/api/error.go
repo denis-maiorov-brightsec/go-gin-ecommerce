@@ -85,6 +85,14 @@ func NewForbiddenError() *Error {
 	}
 }
 
+func NewTooManyRequestsError() *Error {
+	return &Error{
+		Status:  http.StatusTooManyRequests,
+		Code:    "TOO_MANY_REQUESTS",
+		Message: "Rate limit exceeded",
+	}
+}
+
 func NewInternalServerError() *Error {
 	return &Error{
 		Status:  http.StatusInternalServerError,

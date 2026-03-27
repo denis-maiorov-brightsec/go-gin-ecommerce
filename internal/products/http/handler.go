@@ -20,12 +20,12 @@ func NewHandler(service service.Service) *Handler {
 	return &Handler{service: service}
 }
 
-func (h *Handler) RegisterRoutes(group *gin.RouterGroup) {
+func (h *Handler) RegisterRoutes(group *gin.RouterGroup, writeMiddlewares ...gin.HandlerFunc) {
 	group.GET("", h.List)
 	group.GET("/:id", h.GetByID)
-	group.POST("", h.Create)
-	group.PATCH("/:id", h.Update)
-	group.DELETE("/:id", h.Delete)
+	group.POST("", append(writeMiddlewares, h.Create)...)
+	group.PATCH("/:id", append(writeMiddlewares, h.Update)...)
+	group.DELETE("/:id", append(writeMiddlewares, h.Delete)...)
 }
 
 func (h *Handler) List(c *gin.Context) {
