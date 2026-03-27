@@ -46,6 +46,8 @@ func NewWithDB(cfg config.Config, logger *slog.Logger, database *gorm.DB) *gin.E
 	})
 
 	router := gin.New()
+	router.Use(middleware.RequestID())
+	router.Use(middleware.RequestLogger(logger))
 	router.Use(middleware.Recovery(logger))
 	router.Use(middleware.ErrorHandler(logger))
 	router.NoRoute(func(c *gin.Context) {

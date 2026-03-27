@@ -10,7 +10,12 @@ import (
 
 func Recovery(logger *slog.Logger) gin.HandlerFunc {
 	return gin.CustomRecovery(func(c *gin.Context, recovered any) {
-		logger.Error("panic recovered", "panic", recovered, "path", c.Request.URL.Path)
+		logger.Error(
+			"panic recovered",
+			"request_id", GetRequestID(c),
+			"panic", recovered,
+			"path", c.Request.URL.Path,
+		)
 		apiErr := commonapi.NewInternalServerError()
 		c.AbortWithStatusJSON(apiErr.Status, commonapi.NewErrorResponse(c.Request.URL.Path, apiErr))
 	})

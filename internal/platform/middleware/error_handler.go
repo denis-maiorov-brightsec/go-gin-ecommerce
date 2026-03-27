@@ -31,7 +31,13 @@ func ErrorHandler(logger *slog.Logger) gin.HandlerFunc {
 		apiErr := normalizeError(c.Errors.Last().Err)
 
 		if apiErr.Status >= 500 {
-			logger.Error("request failed", "path", c.Request.URL.Path, "status", apiErr.Status, "error", c.Errors.Last().Err)
+			logger.Error(
+				"request failed",
+				"request_id", GetRequestID(c),
+				"path", c.Request.URL.Path,
+				"status", apiErr.Status,
+				"error", c.Errors.Last().Err,
+			)
 		}
 
 		c.AbortWithStatusJSON(apiErr.Status, commonapi.NewErrorResponse(c.Request.URL.Path, apiErr))
