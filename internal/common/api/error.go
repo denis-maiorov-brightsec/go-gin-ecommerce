@@ -69,6 +69,22 @@ func NewConflictError(message string, details []ErrorDetail) *Error {
 	}
 }
 
+func NewUnauthorizedError() *Error {
+	return &Error{
+		Status:  http.StatusUnauthorized,
+		Code:    "UNAUTHORIZED",
+		Message: "Authentication required",
+	}
+}
+
+func NewForbiddenError() *Error {
+	return &Error{
+		Status:  http.StatusForbidden,
+		Code:    "FORBIDDEN",
+		Message: "Forbidden",
+	}
+}
+
 func NewInternalServerError() *Error {
 	return &Error{
 		Status:  http.StatusInternalServerError,

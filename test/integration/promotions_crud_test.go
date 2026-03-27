@@ -8,14 +8,16 @@ import (
 	"time"
 
 	commonapi "go-gin-ecommerce/internal/common/api"
+	platformauth "go-gin-ecommerce/internal/platform/auth"
 	"go-gin-ecommerce/internal/promotions/dto"
 	"go-gin-ecommerce/test/integration/testutil"
 )
 
 func TestPromotionsCRUD(t *testing.T) {
 	router := testutil.NewRouterWithDB(t)
+	headers := promotionsAuthHeaders()
 
-	createRecorder := performJSONRequest(t, router, http.MethodPost, "/v1/promotions", `{
+	createRecorder := performJSONRequestWithHeaders(t, router, http.MethodPost, "/v1/promotions", `{
 		"name": "Spring Sale",
 		"code": "SPRING-10",
 		"discountType": "percentage",
@@ -23,7 +25,7 @@ func TestPromotionsCRUD(t *testing.T) {
 		"startsAt": "2026-04-01T00:00:00Z",
 		"endsAt": "2026-04-30T23:59:59Z",
 		"status": "active"
-	}`)
+	}`, headers)
 	if createRecorder.Code != http.StatusCreated {
 		t.Fatalf("expected 201 when creating promotion, got %d with body %s", createRecorder.Code, createRecorder.Body.String())
 	}
@@ -39,7 +41,7 @@ func TestPromotionsCRUD(t *testing.T) {
 		t.Fatalf("expected date window to be present, got %#v", created)
 	}
 
-	listRecorder := performRequest(t, router, http.MethodGet, "/v1/promotions", "")
+	listRecorder := performRequestWithHeaders(t, router, http.MethodGet, "/v1/promotions", "", headers)
 	if listRecorder.Code != http.StatusOK {
 		t.Fatalf("expected 200 when listing promotions, got %d with body %s", listRecorder.Code, listRecorder.Body.String())
 	}
@@ -52,16 +54,16 @@ func TestPromotionsCRUD(t *testing.T) {
 		t.Fatalf("unexpected listed promotions: %#v", listed)
 	}
 
-	getRecorder := performRequest(t, router, http.MethodGet, "/v1/promotions/1", "")
+	getRecorder := performRequestWithHeaders(t, router, http.MethodGet, "/v1/promotions/1", "", headers)
 	if getRecorder.Code != http.StatusOK {
 		t.Fatalf("expected 200 when fetching promotion, got %d with body %s", getRecorder.Code, getRecorder.Body.String())
 	}
 
-	updateRecorder := performJSONRequest(t, router, http.MethodPatch, "/v1/promotions/1", `{
+	updateRecorder := performJSONRequestWithHeaders(t, router, http.MethodPatch, "/v1/promotions/1", `{
 		"discountValue": 15,
 		"status": "scheduled",
 		"endsAt": null
-	}`)
+	}`, headers)
 	if updateRecorder.Code != http.StatusOK {
 		t.Fatalf("expected 200 when updating promotion, got %d with body %s", updateRecorder.Code, updateRecorder.Body.String())
 	}
@@ -74,12 +76,12 @@ func TestPromotionsCRUD(t *testing.T) {
 		t.Fatalf("expected endsAt to be cleared, got %#v", updated.EndsAt)
 	}
 
-	deleteRecorder := performRequest(t, router, http.MethodDelete, "/v1/promotions/1", "")
+	deleteRecorder := performRequestWithHeaders(t, router, http.MethodDelete, "/v1/promotions/1", "", headers)
 	if deleteRecorder.Code != http.StatusNoContent {
 		t.Fatalf("expected 204 when deleting promotion, got %d", deleteRecorder.Code)
 	}
 
-	missingRecorder := performRequest(t, router, http.MethodGet, "/v1/promotions/1", "")
+	missingRecorder := performRequestWithHeaders(t, router, http.MethodGet, "/v1/promotions/1", "", headers)
 	if missingRecorder.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 after deleting promotion, got %d", missingRecorder.Code)
 	}
@@ -87,25 +89,26 @@ func TestPromotionsCRUD(t *testing.T) {
 
 func TestCreatePromotionDuplicateCodeReturnsConflictEnvelope(t *testing.T) {
 	router := testutil.NewRouterWithDB(t)
+	headers := promotionsAuthHeaders()
 
-	firstRecorder := performJSONRequest(t, router, http.MethodPost, "/v1/promotions", `{
+	firstRecorder := performJSONRequestWithHeaders(t, router, http.MethodPost, "/v1/promotions", `{
 		"name": "Spring Sale",
 		"code": "SPRING-10",
 		"discountType": "percentage",
 		"discountValue": 10,
 		"status": "active"
-	}`)
+	}`, headers)
 	if firstRecorder.Code != http.StatusCreated {
 		t.Fatalf("expected 201 when creating initial promotion, got %d with body %s", firstRecorder.Code, firstRecorder.Body.String())
 	}
 
-	recorder := performJSONRequest(t, router, http.MethodPost, "/v1/promotions", `{
+	recorder := performJSONRequestWithHeaders(t, router, http.MethodPost, "/v1/promotions", `{
 		"name": "Spring Sale Copy",
 		"code": "SPRING-10",
 		"discountType": "fixed",
 		"discountValue": 5,
 		"status": "draft"
-	}`)
+	}`, headers)
 	if recorder.Code != http.StatusConflict {
 		t.Fatalf("expected 409 for duplicate code, got %d with body %s", recorder.Code, recorder.Body.String())
 	}
@@ -121,8 +124,9 @@ func TestCreatePromotionDuplicateCodeReturnsConflictEnvelope(t *testing.T) {
 
 func TestCreatePromotionRejectsInvalidDateWindow(t *testing.T) {
 	router := testutil.NewRouterWithDB(t)
+	headers := promotionsAuthHeaders()
 
-	recorder := performJSONRequest(t, router, http.MethodPost, "/v1/promotions", `{
+	recorder := performJSONRequestWithHeaders(t, router, http.MethodPost, "/v1/promotions", `{
 		"name": "Spring Sale",
 		"code": "SPRING-10",
 		"discountType": "percentage",
@@ -130,7 +134,7 @@ func TestCreatePromotionRejectsInvalidDateWindow(t *testing.T) {
 		"startsAt": "2026-04-30T00:00:00Z",
 		"endsAt": "2026-04-01T00:00:00Z",
 		"status": "active"
-	}`)
+	}`, headers)
 	if recorder.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400 for invalid date window, got %d with body %s", recorder.Code, recorder.Body.String())
 	}
@@ -146,15 +150,16 @@ func TestCreatePromotionRejectsInvalidDateWindow(t *testing.T) {
 
 func TestCreatePromotionRejectsInvalidTimestampFormat(t *testing.T) {
 	router := testutil.NewRouterWithDB(t)
+	headers := promotionsAuthHeaders()
 
-	recorder := performJSONRequest(t, router, http.MethodPost, "/v1/promotions", `{
+	recorder := performJSONRequestWithHeaders(t, router, http.MethodPost, "/v1/promotions", `{
 		"name": "Spring Sale",
 		"code": "SPRING-10",
 		"discountType": "percentage",
 		"discountValue": 10,
 		"startsAt": "not-a-time",
 		"status": "active"
-	}`)
+	}`, headers)
 	if recorder.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400 for invalid timestamp, got %d with body %s", recorder.Code, recorder.Body.String())
 	}
@@ -170,22 +175,23 @@ func TestCreatePromotionRejectsInvalidTimestampFormat(t *testing.T) {
 
 func TestPatchPromotionRejectsInvalidMergedDateWindow(t *testing.T) {
 	router := testutil.NewRouterWithDB(t)
+	headers := promotionsAuthHeaders()
 
-	createRecorder := performJSONRequest(t, router, http.MethodPost, "/v1/promotions", `{
+	createRecorder := performJSONRequestWithHeaders(t, router, http.MethodPost, "/v1/promotions", `{
 		"name": "Spring Sale",
 		"code": "SPRING-10",
 		"discountType": "percentage",
 		"discountValue": 10,
 		"endsAt": "2026-04-10T00:00:00Z",
 		"status": "active"
-	}`)
+	}`, headers)
 	if createRecorder.Code != http.StatusCreated {
 		t.Fatalf("expected 201 when creating promotion, got %d with body %s", createRecorder.Code, createRecorder.Body.String())
 	}
 
-	recorder := performJSONRequest(t, router, http.MethodPatch, "/v1/promotions/1", `{
+	recorder := performJSONRequestWithHeaders(t, router, http.MethodPatch, "/v1/promotions/1", `{
 		"startsAt": "2026-04-11T00:00:00Z"
-	}`)
+	}`, headers)
 	if recorder.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400 for invalid merged date window, got %d with body %s", recorder.Code, recorder.Body.String())
 	}
@@ -198,8 +204,9 @@ func TestPatchPromotionRejectsInvalidMergedDateWindow(t *testing.T) {
 
 func TestDeleteMissingPromotionReturnsNotFoundEnvelope(t *testing.T) {
 	router := testutil.NewRouterWithDB(t)
+	headers := promotionsAuthHeaders()
 
-	recorder := performRequest(t, router, http.MethodDelete, "/v1/promotions/999", "")
+	recorder := performRequestWithHeaders(t, router, http.MethodDelete, "/v1/promotions/999", "", headers)
 	if recorder.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 for deleting missing promotion, got %d with body %s", recorder.Code, recorder.Body.String())
 	}
@@ -207,6 +214,45 @@ func TestDeleteMissingPromotionReturnsNotFoundEnvelope(t *testing.T) {
 	response := decodePromotionErrorResponse(t, recorder)
 	if response.Error.Code != "NOT_FOUND" {
 		t.Fatalf("expected NOT_FOUND error code, got %q", response.Error.Code)
+	}
+}
+
+func TestPromotionsEndpointsRequireAuthentication(t *testing.T) {
+	router := testutil.NewRouterWithDB(t)
+
+	recorder := performRequest(t, router, http.MethodGet, "/v1/promotions", "")
+	if recorder.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for unauthenticated promotions request, got %d with body %s", recorder.Code, recorder.Body.String())
+	}
+
+	response := decodePromotionErrorResponse(t, recorder)
+	if response.Error.Code != "UNAUTHORIZED" {
+		t.Fatalf("expected UNAUTHORIZED error code, got %q", response.Error.Code)
+	}
+}
+
+func TestPromotionsEndpointsRejectAuthenticatedUsersWithoutPermission(t *testing.T) {
+	router := testutil.NewRouterWithDB(t)
+
+	recorder := performRequestWithHeaders(t, router, http.MethodGet, "/v1/promotions", "", map[string]string{
+		"Authorization": "Bearer " + platformauth.StubReadonlyUserToken,
+	})
+	if recorder.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 for forbidden promotions request, got %d with body %s", recorder.Code, recorder.Body.String())
+	}
+
+	response := decodePromotionErrorResponse(t, recorder)
+	if response.Error.Code != "FORBIDDEN" {
+		t.Fatalf("expected FORBIDDEN error code, got %q", response.Error.Code)
+	}
+}
+
+func TestNonProtectedEndpointsRemainAccessibleWithoutAuthentication(t *testing.T) {
+	router := testutil.NewRouterWithDB(t)
+
+	recorder := performRequest(t, router, http.MethodGet, "/v1/health", "")
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200 for non-protected health route, got %d with body %s", recorder.Code, recorder.Body.String())
 	}
 }
 
@@ -245,5 +291,11 @@ func TestPromotionResponseDatesRoundTripRFC3339(t *testing.T) {
 
 	if string(data) == "" {
 		t.Fatal("expected marshalled response data")
+	}
+}
+
+func promotionsAuthHeaders() map[string]string {
+	return map[string]string{
+		"Authorization": "Bearer " + platformauth.StubPromotionsAdminToken,
 	}
 }

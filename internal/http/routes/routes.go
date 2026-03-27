@@ -11,6 +11,7 @@ import (
 	orderhttp "go-gin-ecommerce/internal/orders/http"
 	orderrepository "go-gin-ecommerce/internal/orders/repository"
 	orderservice "go-gin-ecommerce/internal/orders/service"
+	platformauth "go-gin-ecommerce/internal/platform/auth"
 	"go-gin-ecommerce/internal/platform/config"
 	"go-gin-ecommerce/internal/platform/middleware"
 	producthttp "go-gin-ecommerce/internal/products/http"
@@ -53,6 +54,8 @@ func NewWithDB(cfg config.Config, logger *slog.Logger, database *gorm.DB) *gin.E
 		c.JSON(http.StatusOK, commonapi.StatusResponse{Status: "ok"})
 	})
 	if database != nil {
+		authenticator := platformauth.NewStubAuthenticator()
+
 		categoryHandler := categoryhttp.NewHandler(categoryservice.New(categoryrepository.New(database)))
 		categoryHandler.RegisterRoutes(v1.Group("/categories"))
 
@@ -60,7 +63,9 @@ func NewWithDB(cfg config.Config, logger *slog.Logger, database *gorm.DB) *gin.E
 		orderHandler.RegisterRoutes(v1.Group("/orders"))
 
 		promotionHandler := promotionhttp.NewHandler(promotionservice.New(promotionrepository.New(database)))
-		promotionHandler.RegisterRoutes(v1.Group("/promotions"))
+		promotionsGroup := v1.Group("/promotions")
+		promotionsGroup.Use(middleware.RequirePermission(authenticator, platformauth.PermissionManagePromotions))
+		promotionHandler.RegisterRoutes(promotionsGroup)
 
 		productHandler := producthttp.NewHandler(productservice.New(productrepository.New(database)))
 		productHandler.RegisterRoutes(v1.Group("/products"))
