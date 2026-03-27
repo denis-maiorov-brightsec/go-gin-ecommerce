@@ -67,8 +67,13 @@ func (s *CategoryService) Update(ctx context.Context, id uint, request dto.Updat
 	if request.Slug != nil {
 		category.Slug = *request.Slug
 	}
-	if request.Description != nil {
-		category.Description = request.Description
+	if request.Description.Set {
+		if request.Description.Null {
+			category.Description = nil
+		} else {
+			description := request.Description.Value
+			category.Description = &description
+		}
 	}
 
 	if err := s.repository.Update(ctx, &category); err != nil {

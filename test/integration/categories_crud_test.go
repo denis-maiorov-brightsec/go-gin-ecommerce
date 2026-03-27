@@ -127,6 +127,66 @@ func TestCreateCategoryDuplicateSlugReturnsConflictEnvelope(t *testing.T) {
 	}
 }
 
+func TestPatchCategoryCanClearDescription(t *testing.T) {
+	router := testutil.NewRouterWithDB(t)
+
+	createRecorder := performJSONRequest(t, router, http.MethodPost, "/v1/categories", `{
+		"name": "Lighting",
+		"slug": "lighting",
+		"description": "Products for lights and fixtures"
+	}`)
+	if createRecorder.Code != http.StatusCreated {
+		t.Fatalf("expected 201 when creating category, got %d with body %s", createRecorder.Code, createRecorder.Body.String())
+	}
+
+	updateRecorder := performJSONRequest(t, router, http.MethodPatch, "/v1/categories/1", `{
+		"description": null
+	}`)
+	if updateRecorder.Code != http.StatusOK {
+		t.Fatalf("expected 200 when clearing description, got %d with body %s", updateRecorder.Code, updateRecorder.Body.String())
+	}
+
+	updated := decodeCategoryResponse(t, updateRecorder)
+	if updated.Description != nil {
+		t.Fatalf("expected description to be cleared, got %#v", updated.Description)
+	}
+}
+
+func TestPatchCategoryDuplicateSlugReturnsConflictEnvelope(t *testing.T) {
+	router := testutil.NewRouterWithDB(t)
+
+	firstRecorder := performJSONRequest(t, router, http.MethodPost, "/v1/categories", `{
+		"name": "Lighting",
+		"slug": "lighting"
+	}`)
+	if firstRecorder.Code != http.StatusCreated {
+		t.Fatalf("expected 201 when creating initial category, got %d with body %s", firstRecorder.Code, firstRecorder.Body.String())
+	}
+
+	secondRecorder := performJSONRequest(t, router, http.MethodPost, "/v1/categories", `{
+		"name": "Furniture",
+		"slug": "furniture"
+	}`)
+	if secondRecorder.Code != http.StatusCreated {
+		t.Fatalf("expected 201 when creating second category, got %d with body %s", secondRecorder.Code, secondRecorder.Body.String())
+	}
+
+	recorder := performJSONRequest(t, router, http.MethodPatch, "/v1/categories/2", `{
+		"slug": "lighting"
+	}`)
+	if recorder.Code != http.StatusConflict {
+		t.Fatalf("expected 409 for duplicate slug on patch, got %d with body %s", recorder.Code, recorder.Body.String())
+	}
+
+	response := decodeCategoryErrorResponse(t, recorder)
+	if response.Error.Code != "CONFLICT" {
+		t.Fatalf("expected CONFLICT error code, got %q", response.Error.Code)
+	}
+	if len(response.Error.Details) != 1 || response.Error.Details[0].Field != "slug" {
+		t.Fatalf("expected slug conflict details, got %#v", response.Error.Details)
+	}
+}
+
 func TestGetMissingCategoryReturnsNotFoundEnvelope(t *testing.T) {
 	router := testutil.NewRouterWithDB(t)
 
