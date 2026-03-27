@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"strings"
 
 	commonpagination "go-gin-ecommerce/internal/common/pagination"
 	"go-gin-ecommerce/internal/products/model"
@@ -12,6 +13,7 @@ import (
 
 type Repository interface {
 	List(ctx context.Context, params commonpagination.Params) ([]model.Product, int64, error)
+	Search(ctx context.Context, query string, params commonpagination.Params) ([]model.Product, int64, error)
 	GetByID(ctx context.Context, id uint) (model.Product, error)
 	Create(ctx context.Context, product *model.Product) error
 	Update(ctx context.Context, product *model.Product) error
@@ -29,21 +31,17 @@ func New(db *gorm.DB) *GormRepository {
 }
 
 func (r *GormRepository) List(ctx context.Context, params commonpagination.Params) ([]model.Product, int64, error) {
-	var total int64
-	if err := r.db.WithContext(ctx).Model(&model.Product{}).Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
+	return r.list(ctx, params, func(db *gorm.DB) *gorm.DB {
+		return db
+	})
+}
 
-	var products []model.Product
-	if err := r.db.WithContext(ctx).
-		Order("id ASC").
-		Limit(params.Limit).
-		Offset(params.Offset()).
-		Find(&products).Error; err != nil {
-		return nil, 0, err
-	}
+func (r *GormRepository) Search(ctx context.Context, query string, params commonpagination.Params) ([]model.Product, int64, error) {
+	pattern := "%" + strings.ToLower(strings.TrimSpace(query)) + "%"
 
-	return products, total, nil
+	return r.list(ctx, params, func(db *gorm.DB) *gorm.DB {
+		return db.Where("LOWER(name) LIKE ? OR LOWER(sku) LIKE ?", pattern, pattern)
+	})
 }
 
 func (r *GormRepository) GetByID(ctx context.Context, id uint) (model.Product, error) {
@@ -91,4 +89,25 @@ func (r *GormRepository) Delete(ctx context.Context, id uint) error {
 	}
 
 	return nil
+}
+
+func (r *GormRepository) list(ctx context.Context, params commonpagination.Params, scope func(*gorm.DB) *gorm.DB) ([]model.Product, int64, error) {
+	baseQuery := scope(r.db.WithContext(ctx).Model(&model.Product{}))
+
+	var total int64
+	if err := baseQuery.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	var products []model.Product
+	if err := scope(r.db.WithContext(ctx)).
+		Order("LOWER(name) ASC").
+		Order("id ASC").
+		Limit(params.Limit).
+		Offset(params.Offset()).
+		Find(&products).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return products, total, nil
 }

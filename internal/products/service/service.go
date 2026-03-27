@@ -13,6 +13,7 @@ import (
 
 type Service interface {
 	List(ctx context.Context, params commonpagination.Params) ([]model.Product, int64, error)
+	Search(ctx context.Context, query string, params commonpagination.Params) ([]model.Product, int64, error)
 	GetByID(ctx context.Context, id uint) (model.Product, error)
 	Create(ctx context.Context, request dto.CreateProductRequest) (model.Product, error)
 	Update(ctx context.Context, id uint, request dto.UpdateProductRequest) (model.Product, error)
@@ -29,6 +30,10 @@ func New(repo repository.Repository) *ProductService {
 
 func (s *ProductService) List(ctx context.Context, params commonpagination.Params) ([]model.Product, int64, error) {
 	return s.repository.List(ctx, params)
+}
+
+func (s *ProductService) Search(ctx context.Context, query string, params commonpagination.Params) ([]model.Product, int64, error) {
+	return s.repository.Search(ctx, query, params)
 }
 
 func (s *ProductService) GetByID(ctx context.Context, id uint) (model.Product, error) {

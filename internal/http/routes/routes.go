@@ -20,6 +20,7 @@ import (
 	promotionhttp "go-gin-ecommerce/internal/promotions/http"
 	promotionrepository "go-gin-ecommerce/internal/promotions/repository"
 	promotionservice "go-gin-ecommerce/internal/promotions/service"
+	searchhttp "go-gin-ecommerce/internal/search/http"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -73,8 +74,12 @@ func NewWithDB(cfg config.Config, logger *slog.Logger, database *gorm.DB) *gin.E
 		promotionsGroup.Use(middleware.RequirePermission(authenticator, platformauth.PermissionManagePromotions))
 		promotionHandler.RegisterRoutes(promotionsGroup, writeRateLimiter)
 
-		productHandler := producthttp.NewHandler(productservice.New(productrepository.New(database)))
+		productService := productservice.New(productrepository.New(database))
+		productHandler := producthttp.NewHandler(productService)
 		productHandler.RegisterRoutes(v1.Group("/products"), writeRateLimiter)
+
+		searchHandler := searchhttp.NewHandler(productService)
+		searchHandler.RegisterRoutes(v1.Group("/search"))
 	}
 
 	// Keep the root route temporarily for transition while directing clients to /v1.
