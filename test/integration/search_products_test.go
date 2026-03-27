@@ -10,14 +10,14 @@ import (
 	"go-gin-ecommerce/test/integration/testutil"
 )
 
-func TestSearchProductsMatchesNameAndSKUCaseInsensitivelyWithDeterministicOrdering(t *testing.T) {
+func TestSearchProductsMatchesNameAndStockKeepingUnitCaseInsensitivelyWithDeterministicOrdering(t *testing.T) {
 	router := testutil.NewRouterWithDB(t)
 
 	for i, body := range []string{
-		`{"name":"Omega Lamp","sku":"DESK-LIGHT-003","price":59.99,"status":"active"}`,
-		`{"name":"alpha desk","sku":"WORK-001","price":39.99,"status":"active"}`,
-		`{"name":"Beta Desk Shelf","sku":"SHELF-002","price":79.99,"status":"draft"}`,
-		`{"name":"Chair Mat","sku":"FLOOR-004","price":29.99,"status":"active"}`,
+		`{"name":"Omega Lamp","stockKeepingUnit":"DESK-LIGHT-003","price":59.99,"status":"active"}`,
+		`{"name":"alpha desk","stockKeepingUnit":"WORK-001","price":39.99,"status":"active"}`,
+		`{"name":"Beta Desk Shelf","stockKeepingUnit":"SHELF-002","price":79.99,"status":"draft"}`,
+		`{"name":"Chair Mat","stockKeepingUnit":"FLOOR-004","price":29.99,"status":"active"}`,
 	} {
 		recorder := performJSONRequest(t, router, http.MethodPost, "/v1/products", body)
 		if recorder.Code != http.StatusCreated {
@@ -43,16 +43,16 @@ func TestSearchProductsMatchesNameAndSKUCaseInsensitivelyWithDeterministicOrderi
 	}
 
 	expected := []struct {
-		Name string
-		SKU  string
+		Name             string
+		StockKeepingUnit string
 	}{
-		{Name: "alpha desk", SKU: "WORK-001"},
-		{Name: "Beta Desk Shelf", SKU: "SHELF-002"},
-		{Name: "Omega Lamp", SKU: "DESK-LIGHT-003"},
+		{Name: "alpha desk", StockKeepingUnit: "WORK-001"},
+		{Name: "Beta Desk Shelf", StockKeepingUnit: "SHELF-002"},
+		{Name: "Omega Lamp", StockKeepingUnit: "DESK-LIGHT-003"},
 	}
 
 	for i, item := range response.Items {
-		if item.Name != expected[i].Name || item.SKU != expected[i].SKU {
+		if item.Name != expected[i].Name || item.StockKeepingUnit != expected[i].StockKeepingUnit {
 			t.Fatalf("unexpected search item at index %d: %#v", i, item)
 		}
 	}

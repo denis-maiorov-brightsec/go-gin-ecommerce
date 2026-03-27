@@ -42,7 +42,7 @@ func (r *GormRepository) Search(ctx context.Context, query string, params common
 	pattern := "%" + strings.ToLower(strings.TrimSpace(query)) + "%"
 
 	return r.list(ctx, params, func(db *gorm.DB) *gorm.DB {
-		return db.Where("LOWER(name) LIKE ? OR LOWER(sku) LIKE ?", pattern, pattern)
+		return db.Where("LOWER(name) LIKE ? OR LOWER(stock_keeping_unit) LIKE ?", pattern, pattern)
 	}, func(db *gorm.DB) *gorm.DB {
 		return db.Order("LOWER(name) ASC").Order("id ASC")
 	})
@@ -67,11 +67,11 @@ func (r *GormRepository) Create(ctx context.Context, product *model.Product) err
 
 func (r *GormRepository) Update(ctx context.Context, product *model.Product) error {
 	tx := r.db.WithContext(ctx).Model(&model.Product{}).Where("id = ?", product.ID).Updates(map[string]any{
-		"name":        product.Name,
-		"sku":         product.SKU,
-		"price":       product.Price,
-		"status":      product.Status,
-		"category_id": product.CategoryID,
+		"name":               product.Name,
+		"stock_keeping_unit": product.StockKeepingUnit,
+		"price":              product.Price,
+		"status":             product.Status,
+		"category_id":        product.CategoryID,
 	})
 	if tx.Error != nil {
 		return tx.Error

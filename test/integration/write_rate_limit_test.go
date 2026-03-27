@@ -204,7 +204,7 @@ func seedProduct(t *testing.T, database *gorm.DB, name string, sku string) uint 
 
 	var productID uint
 	row := database.Raw(
-		`INSERT INTO products (name, sku, price, status, created_at, updated_at)
+		`INSERT INTO products (name, stock_keeping_unit, price, status, created_at, updated_at)
 		 VALUES (?, ?, ?, ?, ?, ?)
 		 RETURNING id`,
 		name,

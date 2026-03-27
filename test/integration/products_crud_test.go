@@ -17,7 +17,7 @@ func TestProductsCRUD(t *testing.T) {
 
 	createRecorder := performJSONRequest(t, router, http.MethodPost, "/v1/products", `{
 		"name": "Desk Lamp",
-		"sku": "LAMP-001",
+		"stockKeepingUnit": "LAMP-001",
 		"price": 49.99,
 		"status": "active"
 	}`)
@@ -29,7 +29,7 @@ func TestProductsCRUD(t *testing.T) {
 	if created.ID == 0 {
 		t.Fatalf("expected created product to have an id, got %#v", created)
 	}
-	if created.Name != "Desk Lamp" || created.SKU != "LAMP-001" || created.Price != 49.99 || created.Status != "active" {
+	if created.Name != "Desk Lamp" || created.StockKeepingUnit != "LAMP-001" || created.Price != 49.99 || created.Status != "active" {
 		t.Fatalf("unexpected create response: %#v", created)
 	}
 
@@ -63,7 +63,7 @@ func TestProductsCRUD(t *testing.T) {
 	}
 
 	updated := decodeProductResponse(t, updateRecorder)
-	if updated.Price != 59.99 || updated.Status != "draft" || updated.Name != created.Name || updated.SKU != created.SKU {
+	if updated.Price != 59.99 || updated.Status != "draft" || updated.Name != created.Name || updated.StockKeepingUnit != created.StockKeepingUnit {
 		t.Fatalf("unexpected updated product: %#v", updated)
 	}
 
@@ -82,9 +82,9 @@ func TestListProductsSupportsPagination(t *testing.T) {
 	router := testutil.NewRouterWithDB(t)
 
 	for i, body := range []string{
-		`{"name":"Product 1","sku":"SKU-001","price":10,"status":"active"}`,
-		`{"name":"Product 2","sku":"SKU-002","price":20,"status":"active"}`,
-		`{"name":"Product 3","sku":"SKU-003","price":30,"status":"draft"}`,
+		`{"name":"Product 1","stockKeepingUnit":"SKU-001","price":10,"status":"active"}`,
+		`{"name":"Product 2","stockKeepingUnit":"SKU-002","price":20,"status":"active"}`,
+		`{"name":"Product 3","stockKeepingUnit":"SKU-003","price":30,"status":"draft"}`,
 	} {
 		recorder := performJSONRequest(t, router, http.MethodPost, "/v1/products", body)
 		if recorder.Code != http.StatusCreated {
@@ -114,9 +114,9 @@ func TestListProductsPreservesIDOrdering(t *testing.T) {
 	router := testutil.NewRouterWithDB(t)
 
 	for i, body := range []string{
-		`{"name":"Zulu Desk","sku":"SKU-001","price":10,"status":"active"}`,
-		`{"name":"Alpha Desk","sku":"SKU-002","price":20,"status":"active"}`,
-		`{"name":"Middle Desk","sku":"SKU-003","price":30,"status":"draft"}`,
+		`{"name":"Zulu Desk","stockKeepingUnit":"SKU-001","price":10,"status":"active"}`,
+		`{"name":"Alpha Desk","stockKeepingUnit":"SKU-002","price":20,"status":"active"}`,
+		`{"name":"Middle Desk","stockKeepingUnit":"SKU-003","price":30,"status":"draft"}`,
 	} {
 		recorder := performJSONRequest(t, router, http.MethodPost, "/v1/products", body)
 		if recorder.Code != http.StatusCreated {
@@ -143,9 +143,9 @@ func TestListProductsClampsLimitToMax(t *testing.T) {
 	router := testutil.NewRouterWithDB(t)
 
 	for i, body := range []string{
-		`{"name":"Clamp 1","sku":"CLAMP-001","price":10,"status":"active"}`,
-		`{"name":"Clamp 2","sku":"CLAMP-002","price":20,"status":"active"}`,
-		`{"name":"Clamp 3","sku":"CLAMP-003","price":30,"status":"active"}`,
+		`{"name":"Clamp 1","stockKeepingUnit":"CLAMP-001","price":10,"status":"active"}`,
+		`{"name":"Clamp 2","stockKeepingUnit":"CLAMP-002","price":20,"status":"active"}`,
+		`{"name":"Clamp 3","stockKeepingUnit":"CLAMP-003","price":30,"status":"active"}`,
 	} {
 		recorder := performJSONRequest(t, router, http.MethodPost, "/v1/products", body)
 		if recorder.Code != http.StatusCreated {
@@ -196,7 +196,7 @@ func TestCreateProductValidationErrorUsesGlobalEnvelope(t *testing.T) {
 
 	recorder := performJSONRequest(t, router, http.MethodPost, "/v1/products", `{
 		"name": "",
-		"sku": "BAD-001",
+		"stockKeepingUnit": "BAD-001",
 		"price": 0,
 		"status": ""
 	}`)
@@ -246,7 +246,7 @@ func TestPatchProductValidationErrorUsesGlobalEnvelope(t *testing.T) {
 
 	createRecorder := performJSONRequest(t, router, http.MethodPost, "/v1/products", `{
 		"name": "Notebook",
-		"sku": "NOTE-001",
+		"stockKeepingUnit": "NOTE-001",
 		"price": 9.99,
 		"status": "active"
 	}`)
@@ -272,7 +272,7 @@ func TestPatchProductCanClearCategoryID(t *testing.T) {
 
 	createRecorder := performJSONRequest(t, router, http.MethodPost, "/v1/products", `{
 		"name": "Monitor Stand",
-		"sku": "STAND-001",
+		"stockKeepingUnit": "STAND-001",
 		"price": 39.99,
 		"status": "active",
 		"categoryId": 7
@@ -296,6 +296,71 @@ func TestPatchProductCanClearCategoryID(t *testing.T) {
 	updated := decodeProductResponse(t, updateRecorder)
 	if updated.CategoryID != nil {
 		t.Fatalf("expected categoryId to be cleared, got %#v", updated.CategoryID)
+	}
+}
+
+func TestCreateProductAcceptsDeprecatedSKUAlias(t *testing.T) {
+	router := testutil.NewRouterWithDB(t)
+
+	recorder := performJSONRequest(t, router, http.MethodPost, "/v1/products", `{
+		"name": "Alias Product",
+		"sku": "ALIAS-001",
+		"price": 19.99,
+		"status": "active"
+	}`)
+	if recorder.Code != http.StatusCreated {
+		t.Fatalf("expected 201 when creating product with deprecated sku alias, got %d with body %s", recorder.Code, recorder.Body.String())
+	}
+
+	response := decodeProductResponse(t, recorder)
+	if response.StockKeepingUnit != "ALIAS-001" {
+		t.Fatalf("expected canonical stockKeepingUnit in response, got %#v", response)
+	}
+}
+
+func TestPatchProductAcceptsDeprecatedSKUAlias(t *testing.T) {
+	router := testutil.NewRouterWithDB(t)
+
+	createRecorder := performJSONRequest(t, router, http.MethodPost, "/v1/products", `{
+		"name": "Patch Alias Product",
+		"stockKeepingUnit": "PATCH-001",
+		"price": 29.99,
+		"status": "active"
+	}`)
+	if createRecorder.Code != http.StatusCreated {
+		t.Fatalf("expected 201 when creating product, got %d with body %s", createRecorder.Code, createRecorder.Body.String())
+	}
+
+	updateRecorder := performJSONRequest(t, router, http.MethodPatch, "/v1/products/1", `{
+		"sku": "PATCH-002"
+	}`)
+	if updateRecorder.Code != http.StatusOK {
+		t.Fatalf("expected 200 when patching product with deprecated sku alias, got %d with body %s", updateRecorder.Code, updateRecorder.Body.String())
+	}
+
+	response := decodeProductResponse(t, updateRecorder)
+	if response.StockKeepingUnit != "PATCH-002" {
+		t.Fatalf("expected canonical stockKeepingUnit in response, got %#v", response)
+	}
+}
+
+func TestCreateProductRejectsConflictingCanonicalAndAliasSKUs(t *testing.T) {
+	router := testutil.NewRouterWithDB(t)
+
+	recorder := performJSONRequest(t, router, http.MethodPost, "/v1/products", `{
+		"name": "Conflict Product",
+		"stockKeepingUnit": "CONFLICT-001",
+		"sku": "CONFLICT-002",
+		"price": 14.99,
+		"status": "active"
+	}`)
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for conflicting stockKeepingUnit and sku, got %d with body %s", recorder.Code, recorder.Body.String())
+	}
+
+	response := decodeProductErrorResponse(t, recorder)
+	if len(response.Error.Details) != 1 || response.Error.Details[0].Field != "stockKeepingUnit" {
+		t.Fatalf("expected stockKeepingUnit validation detail, got %#v", response.Error.Details)
 	}
 }
 

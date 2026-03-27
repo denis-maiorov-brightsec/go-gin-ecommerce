@@ -46,12 +46,17 @@ func (s *ProductService) GetByID(ctx context.Context, id uint) (model.Product, e
 }
 
 func (s *ProductService) Create(ctx context.Context, request dto.CreateProductRequest) (model.Product, error) {
+	stockKeepingUnit, err := request.ResolvedStockKeepingUnit()
+	if err != nil {
+		return model.Product{}, err
+	}
+
 	product := model.Product{
-		Name:       request.Name,
-		SKU:        request.SKU,
-		Price:      request.Price,
-		Status:     request.Status,
-		CategoryID: request.CategoryID,
+		Name:             request.Name,
+		StockKeepingUnit: stockKeepingUnit,
+		Price:            request.Price,
+		Status:           request.Status,
+		CategoryID:       request.CategoryID,
 	}
 
 	if err := s.repository.Create(ctx, &product); err != nil {
@@ -67,11 +72,16 @@ func (s *ProductService) Update(ctx context.Context, id uint, request dto.Update
 		return model.Product{}, mapRepositoryError(err)
 	}
 
+	stockKeepingUnit, err := request.ResolvedStockKeepingUnit()
+	if err != nil {
+		return model.Product{}, err
+	}
+
 	if request.Name != nil {
 		product.Name = *request.Name
 	}
-	if request.SKU != nil {
-		product.SKU = *request.SKU
+	if stockKeepingUnit != nil {
+		product.StockKeepingUnit = *stockKeepingUnit
 	}
 	if request.Price != nil {
 		product.Price = *request.Price
