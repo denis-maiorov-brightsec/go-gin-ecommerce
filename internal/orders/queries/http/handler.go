@@ -10,7 +10,7 @@ import (
 	commonapi "go-gin-ecommerce/internal/common/api"
 	commonpagination "go-gin-ecommerce/internal/common/pagination"
 	"go-gin-ecommerce/internal/orders/dto"
-	"go-gin-ecommerce/internal/orders/service"
+	"go-gin-ecommerce/internal/orders/queries/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -25,10 +25,9 @@ func NewHandler(service service.Service) *Handler {
 	return &Handler{service: service}
 }
 
-func (h *Handler) RegisterRoutes(group *gin.RouterGroup, writeMiddlewares ...gin.HandlerFunc) {
+func (h *Handler) RegisterRoutes(group *gin.RouterGroup) {
 	group.GET("", h.List)
 	group.GET("/:id", h.GetByID)
-	group.POST("/:id/cancel", append(writeMiddlewares, h.Cancel)...)
 }
 
 func (h *Handler) List(c *gin.Context) {
@@ -48,29 +47,13 @@ func (h *Handler) List(c *gin.Context) {
 }
 
 func (h *Handler) GetByID(c *gin.Context) {
-	id, err := parseOrderID(c.Param("id"))
+	id, err := ParseOrderID(c.Param("id"))
 	if err != nil {
 		_ = c.Error(err)
 		return
 	}
 
 	order, err := h.service.GetByID(c.Request.Context(), id)
-	if err != nil {
-		_ = c.Error(err)
-		return
-	}
-
-	c.JSON(nethttp.StatusOK, dto.NewOrderResponse(order))
-}
-
-func (h *Handler) Cancel(c *gin.Context) {
-	id, err := parseOrderID(c.Param("id"))
-	if err != nil {
-		_ = c.Error(err)
-		return
-	}
-
-	order, err := h.service.Cancel(c.Request.Context(), id)
 	if err != nil {
 		_ = c.Error(err)
 		return
@@ -131,7 +114,7 @@ func parseDateFilter(raw string, field string) (*time.Time, error) {
 	return &utcValue, nil
 }
 
-func parseOrderID(rawID string) (uint, error) {
+func ParseOrderID(rawID string) (uint, error) {
 	id, err := strconv.ParseUint(rawID, 10, 64)
 	if err != nil || id == 0 {
 		return 0, commonapi.NewValidationError([]commonapi.ErrorDetail{{

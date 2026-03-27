@@ -8,9 +8,12 @@ import (
 	categoryrepository "go-gin-ecommerce/internal/categories/repository"
 	categoryservice "go-gin-ecommerce/internal/categories/service"
 	commonapi "go-gin-ecommerce/internal/common/api"
-	orderhttp "go-gin-ecommerce/internal/orders/http"
-	orderrepository "go-gin-ecommerce/internal/orders/repository"
-	orderservice "go-gin-ecommerce/internal/orders/service"
+	ordercommandhttp "go-gin-ecommerce/internal/orders/commands/http"
+	ordercommandrepository "go-gin-ecommerce/internal/orders/commands/repository"
+	ordercommandservice "go-gin-ecommerce/internal/orders/commands/service"
+	orderqueryhttp "go-gin-ecommerce/internal/orders/queries/http"
+	orderqueryrepository "go-gin-ecommerce/internal/orders/queries/repository"
+	orderqueryservice "go-gin-ecommerce/internal/orders/queries/service"
 	platformauth "go-gin-ecommerce/internal/platform/auth"
 	"go-gin-ecommerce/internal/platform/config"
 	"go-gin-ecommerce/internal/platform/middleware"
@@ -66,8 +69,11 @@ func NewWithDB(cfg config.Config, logger *slog.Logger, database *gorm.DB) *gin.E
 		categoryHandler := categoryhttp.NewHandler(categoryservice.New(categoryrepository.New(database)))
 		categoryHandler.RegisterRoutes(v1.Group("/categories"), writeRateLimiter)
 
-		orderHandler := orderhttp.NewHandler(orderservice.New(orderrepository.New(database)))
-		orderHandler.RegisterRoutes(v1.Group("/orders"), writeRateLimiter)
+		ordersGroup := v1.Group("/orders")
+		orderQueryHandler := orderqueryhttp.NewHandler(orderqueryservice.New(orderqueryrepository.New(database)))
+		orderQueryHandler.RegisterRoutes(ordersGroup)
+		orderCommandHandler := ordercommandhttp.NewHandler(ordercommandservice.New(ordercommandrepository.New(database)))
+		orderCommandHandler.RegisterRoutes(ordersGroup, writeRateLimiter)
 
 		promotionHandler := promotionhttp.NewHandler(promotionservice.New(promotionrepository.New(database)))
 		promotionsGroup := v1.Group("/promotions")

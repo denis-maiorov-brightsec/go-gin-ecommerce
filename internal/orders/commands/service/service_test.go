@@ -7,9 +7,8 @@ import (
 	"time"
 
 	commonapi "go-gin-ecommerce/internal/common/api"
-	"go-gin-ecommerce/internal/orders/dto"
+	"go-gin-ecommerce/internal/orders/commands/repository"
 	"go-gin-ecommerce/internal/orders/model"
-	"go-gin-ecommerce/internal/orders/repository"
 )
 
 func TestCancelTransitionsPendingOrder(t *testing.T) {
@@ -94,27 +93,8 @@ func TestCancelRejectsIneligibleStatus(t *testing.T) {
 }
 
 type stubRepository struct {
-	getByIDFn       func(context.Context, uint) (model.Order, error)
-	cancelFn        func(context.Context, uint, time.Time) (model.Order, error)
-	getByIDSequence []model.Order
-	getByIDCalls    int
-	cancelCalls     int
-}
-
-func (s *stubRepository) List(ctx context.Context, params dto.ListOrdersParams) ([]model.Order, int64, error) {
-	return nil, 0, nil
-}
-
-func (s *stubRepository) GetByID(ctx context.Context, id uint) (model.Order, error) {
-	s.getByIDCalls++
-	if len(s.getByIDSequence) >= s.getByIDCalls {
-		return s.getByIDSequence[s.getByIDCalls-1], nil
-	}
-	if s.getByIDFn != nil {
-		return s.getByIDFn(ctx, id)
-	}
-
-	return model.Order{}, nil
+	cancelFn    func(context.Context, uint, time.Time) (model.Order, error)
+	cancelCalls int
 }
 
 func (s *stubRepository) Cancel(ctx context.Context, id uint, updatedAt time.Time) (model.Order, error) {
