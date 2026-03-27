@@ -151,6 +151,38 @@ func TestPatchProductValidationErrorUsesGlobalEnvelope(t *testing.T) {
 	}
 }
 
+func TestPatchProductCanClearCategoryID(t *testing.T) {
+	router := testutil.NewRouterWithDB(t)
+
+	createRecorder := performJSONRequest(t, router, http.MethodPost, "/v1/products", `{
+		"name": "Monitor Stand",
+		"sku": "STAND-001",
+		"price": 39.99,
+		"status": "active",
+		"categoryId": 7
+	}`)
+	if createRecorder.Code != http.StatusCreated {
+		t.Fatalf("expected 201 when creating product, got %d with body %s", createRecorder.Code, createRecorder.Body.String())
+	}
+
+	created := decodeProductResponse(t, createRecorder)
+	if created.CategoryID == nil || *created.CategoryID != 7 {
+		t.Fatalf("expected created product categoryId to be 7, got %#v", created.CategoryID)
+	}
+
+	updateRecorder := performJSONRequest(t, router, http.MethodPatch, "/v1/products/1", `{
+		"categoryId": null
+	}`)
+	if updateRecorder.Code != http.StatusOK {
+		t.Fatalf("expected 200 when clearing categoryId, got %d with body %s", updateRecorder.Code, updateRecorder.Body.String())
+	}
+
+	updated := decodeProductResponse(t, updateRecorder)
+	if updated.CategoryID != nil {
+		t.Fatalf("expected categoryId to be cleared, got %#v", updated.CategoryID)
+	}
+}
+
 func performRequest(t *testing.T, router http.Handler, method string, path string, body string) *httptest.ResponseRecorder {
 	t.Helper()
 

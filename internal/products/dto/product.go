@@ -1,6 +1,8 @@
 package dto
 
 import (
+	"bytes"
+	"encoding/json"
 	"time"
 
 	"go-gin-ecommerce/internal/products/model"
@@ -15,11 +17,11 @@ type CreateProductRequest struct {
 }
 
 type UpdateProductRequest struct {
-	Name       *string  `json:"name" binding:"omitempty,min=1"`
-	SKU        *string  `json:"sku" binding:"omitempty,min=1"`
-	Price      *float64 `json:"price" binding:"omitempty,gt=0"`
-	Status     *string  `json:"status" binding:"omitempty,min=1"`
-	CategoryID *uint    `json:"categoryId"`
+	Name       *string      `json:"name" binding:"omitempty,min=1"`
+	SKU        *string      `json:"sku" binding:"omitempty,min=1"`
+	Price      *float64     `json:"price" binding:"omitempty,gt=0"`
+	Status     *string      `json:"status" binding:"omitempty,min=1"`
+	CategoryID OptionalUint `json:"categoryId"`
 }
 
 type ProductResponse struct {
@@ -53,4 +55,23 @@ func NewProductResponses(products []model.Product) []ProductResponse {
 	}
 
 	return responses
+}
+
+type OptionalUint struct {
+	Set   bool
+	Null  bool
+	Value uint
+}
+
+func (o *OptionalUint) UnmarshalJSON(data []byte) error {
+	o.Set = true
+
+	if bytes.Equal(bytes.TrimSpace(data), []byte("null")) {
+		o.Null = true
+		o.Value = 0
+		return nil
+	}
+
+	o.Null = false
+	return json.Unmarshal(data, &o.Value)
 }

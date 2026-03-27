@@ -73,8 +73,13 @@ func (s *ProductService) Update(ctx context.Context, id uint, request dto.Update
 	if request.Status != nil {
 		product.Status = *request.Status
 	}
-	if request.CategoryID != nil {
-		product.CategoryID = request.CategoryID
+	if request.CategoryID.Set {
+		if request.CategoryID.Null {
+			product.CategoryID = nil
+		} else {
+			categoryID := request.CategoryID.Value
+			product.CategoryID = &categoryID
+		}
 	}
 
 	if err := s.repository.Update(ctx, &product); err != nil {
