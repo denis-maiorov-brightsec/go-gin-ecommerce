@@ -73,4 +73,17 @@ func TestUnversionedHealthEndpointIsNotAvailable(t *testing.T) {
 	if recorder.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 for /health, got %d", recorder.Code)
 	}
+
+	var response commonapi.ErrorResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	if response.Path != "/health" {
+		t.Fatalf("expected response path to be /health, got %q", response.Path)
+	}
+
+	if response.Error.Code != "NOT_FOUND" {
+		t.Fatalf("expected error code NOT_FOUND, got %q", response.Error.Code)
+	}
 }

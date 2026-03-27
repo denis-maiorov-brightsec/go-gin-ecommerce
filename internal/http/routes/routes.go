@@ -21,8 +21,15 @@ func New(cfg config.Config, logger *slog.Logger) *gin.Engine {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
+	middleware.SetupValidation()
+
 	router := gin.New()
 	router.Use(middleware.Recovery(logger))
+	router.Use(middleware.ErrorHandler(logger))
+	router.NoRoute(func(c *gin.Context) {
+		apiErr := commonapi.NewNotFoundError()
+		c.AbortWithStatusJSON(apiErr.Status, commonapi.NewErrorResponse(c.Request.URL.Path, apiErr))
+	})
 
 	v1 := router.Group("/v1")
 	v1.GET("/health", func(c *gin.Context) {

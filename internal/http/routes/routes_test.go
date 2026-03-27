@@ -24,6 +24,19 @@ func TestNewRouterBuildsAndReturnsNotFoundForUnknownRoute(t *testing.T) {
 	if recorder.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 for unknown route, got %d", recorder.Code)
 	}
+
+	var response commonapi.ErrorResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	if response.Path != "/does-not-exist" {
+		t.Fatalf("expected path to be /does-not-exist, got %q", response.Path)
+	}
+
+	if response.Error.Code != "NOT_FOUND" {
+		t.Fatalf("expected error code NOT_FOUND, got %q", response.Error.Code)
+	}
 }
 
 func TestVersionedHealthRouteReturnsOKStatus(t *testing.T) {
@@ -88,5 +101,14 @@ func TestUnversionedHealthRouteIsNotRegistered(t *testing.T) {
 
 	if recorder.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 for unversioned health route, got %d", recorder.Code)
+	}
+
+	var response commonapi.ErrorResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	if response.Error.Message != "Resource not found" {
+		t.Fatalf("expected not-found message, got %q", response.Error.Message)
 	}
 }
