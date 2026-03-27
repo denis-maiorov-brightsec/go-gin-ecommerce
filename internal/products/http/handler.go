@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	commonapi "go-gin-ecommerce/internal/common/api"
+	commonpagination "go-gin-ecommerce/internal/common/pagination"
 	"go-gin-ecommerce/internal/products/dto"
 	"go-gin-ecommerce/internal/products/service"
 
@@ -28,13 +29,19 @@ func (h *Handler) RegisterRoutes(group *gin.RouterGroup) {
 }
 
 func (h *Handler) List(c *gin.Context) {
-	products, err := h.service.List(c.Request.Context())
+	params, err := commonpagination.Parse(c.Request.URL.Query())
 	if err != nil {
 		_ = c.Error(err)
 		return
 	}
 
-	c.JSON(nethttp.StatusOK, dto.NewProductResponses(products))
+	products, total, err := h.service.List(c.Request.Context(), params)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	c.JSON(nethttp.StatusOK, commonpagination.NewResponse(dto.NewProductResponses(products), params, total))
 }
 
 func (h *Handler) GetByID(c *gin.Context) {

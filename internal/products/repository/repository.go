@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 
+	commonpagination "go-gin-ecommerce/internal/common/pagination"
 	"go-gin-ecommerce/internal/products/model"
 
 	"gorm.io/gorm"
 )
 
 type Repository interface {
-	List(ctx context.Context) ([]model.Product, error)
+	List(ctx context.Context, params commonpagination.Params) ([]model.Product, int64, error)
 	GetByID(ctx context.Context, id uint) (model.Product, error)
 	Create(ctx context.Context, product *model.Product) error
 	Update(ctx context.Context, product *model.Product) error
@@ -27,13 +28,22 @@ func New(db *gorm.DB) *GormRepository {
 	return &GormRepository{db: db}
 }
 
-func (r *GormRepository) List(ctx context.Context) ([]model.Product, error) {
-	var products []model.Product
-	if err := r.db.WithContext(ctx).Order("id ASC").Find(&products).Error; err != nil {
-		return nil, err
+func (r *GormRepository) List(ctx context.Context, params commonpagination.Params) ([]model.Product, int64, error) {
+	var total int64
+	if err := r.db.WithContext(ctx).Model(&model.Product{}).Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
 
-	return products, nil
+	var products []model.Product
+	if err := r.db.WithContext(ctx).
+		Order("id ASC").
+		Limit(params.Limit).
+		Offset(params.Offset()).
+		Find(&products).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return products, total, nil
 }
 
 func (r *GormRepository) GetByID(ctx context.Context, id uint) (model.Product, error) {

@@ -35,6 +35,14 @@ type ProductResponse struct {
 	UpdatedAt  time.Time `json:"updatedAt"`
 }
 
+type ProductListResponse struct {
+	Items      []ProductResponse `json:"items"`
+	Page       int               `json:"page"`
+	Limit      int               `json:"limit"`
+	Total      int64             `json:"total"`
+	TotalPages int               `json:"totalPages"`
+}
+
 func NewProductResponse(product model.Product) ProductResponse {
 	return ProductResponse{
 		ID:         product.ID,

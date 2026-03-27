@@ -38,11 +38,14 @@ func TestProductsCRUD(t *testing.T) {
 		t.Fatalf("expected 200 when listing products, got %d", listRecorder.Code)
 	}
 
-	var listed []dto.ProductResponse
+	var listed dto.ProductListResponse
 	if err := json.Unmarshal(listRecorder.Body.Bytes(), &listed); err != nil {
 		t.Fatalf("failed to decode product list: %v", err)
 	}
-	if len(listed) != 1 || listed[0].ID != created.ID {
+	if listed.Page != 1 || listed.Limit != 20 || listed.Total != 1 || listed.TotalPages != 1 {
+		t.Fatalf("unexpected list metadata: %#v", listed)
+	}
+	if len(listed.Items) != 1 || listed.Items[0].ID != created.ID {
 		t.Fatalf("unexpected listed products: %#v", listed)
 	}
 
@@ -72,6 +75,90 @@ func TestProductsCRUD(t *testing.T) {
 	missingRecorder := performRequest(t, router, http.MethodGet, "/v1/products/1", "")
 	if missingRecorder.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 after deleting product, got %d", missingRecorder.Code)
+	}
+}
+
+func TestListProductsSupportsPagination(t *testing.T) {
+	router := testutil.NewRouterWithDB(t)
+
+	for i, body := range []string{
+		`{"name":"Product 1","sku":"SKU-001","price":10,"status":"active"}`,
+		`{"name":"Product 2","sku":"SKU-002","price":20,"status":"active"}`,
+		`{"name":"Product 3","sku":"SKU-003","price":30,"status":"draft"}`,
+	} {
+		recorder := performJSONRequest(t, router, http.MethodPost, "/v1/products", body)
+		if recorder.Code != http.StatusCreated {
+			t.Fatalf("expected 201 when creating product %d, got %d with body %s", i+1, recorder.Code, recorder.Body.String())
+		}
+	}
+
+	recorder := performRequest(t, router, http.MethodGet, "/v1/products?page=2&limit=1", "")
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200 when listing paginated products, got %d with body %s", recorder.Code, recorder.Body.String())
+	}
+
+	var response dto.ProductListResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode paginated response: %v", err)
+	}
+
+	if response.Page != 2 || response.Limit != 1 || response.Total != 3 || response.TotalPages != 3 {
+		t.Fatalf("unexpected pagination metadata: %#v", response)
+	}
+	if len(response.Items) != 1 || response.Items[0].Name != "Product 2" {
+		t.Fatalf("unexpected paginated items: %#v", response.Items)
+	}
+}
+
+func TestListProductsClampsLimitToMax(t *testing.T) {
+	router := testutil.NewRouterWithDB(t)
+
+	for i, body := range []string{
+		`{"name":"Clamp 1","sku":"CLAMP-001","price":10,"status":"active"}`,
+		`{"name":"Clamp 2","sku":"CLAMP-002","price":20,"status":"active"}`,
+		`{"name":"Clamp 3","sku":"CLAMP-003","price":30,"status":"active"}`,
+	} {
+		recorder := performJSONRequest(t, router, http.MethodPost, "/v1/products", body)
+		if recorder.Code != http.StatusCreated {
+			t.Fatalf("expected 201 when creating clamp product %d, got %d with body %s", i+1, recorder.Code, recorder.Body.String())
+		}
+	}
+
+	recorder := performRequest(t, router, http.MethodGet, "/v1/products?limit=999", "")
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200 when listing with oversized limit, got %d with body %s", recorder.Code, recorder.Body.String())
+	}
+
+	var response dto.ProductListResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode clamped pagination response: %v", err)
+	}
+
+	if response.Limit != 100 {
+		t.Fatalf("expected limit to be clamped to 100, got %d", response.Limit)
+	}
+	if response.Total != 3 || len(response.Items) != 3 {
+		t.Fatalf("unexpected oversized-limit response: %#v", response)
+	}
+}
+
+func TestListProductsRejectsInvalidPagination(t *testing.T) {
+	router := testutil.NewRouterWithDB(t)
+
+	recorder := performRequest(t, router, http.MethodGet, "/v1/products?page=0", "")
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for invalid pagination, got %d with body %s", recorder.Code, recorder.Body.String())
+	}
+
+	response := decodeProductErrorResponse(t, recorder)
+	if response.Error.Code != "VALIDATION_ERROR" {
+		t.Fatalf("expected validation error code, got %q", response.Error.Code)
+	}
+	if response.Path != "/v1/products" {
+		t.Fatalf("expected response path /v1/products, got %q", response.Path)
+	}
+	if len(response.Error.Details) != 1 || response.Error.Details[0].Field != "page" {
+		t.Fatalf("expected page validation detail, got %#v", response.Error.Details)
 	}
 }
 

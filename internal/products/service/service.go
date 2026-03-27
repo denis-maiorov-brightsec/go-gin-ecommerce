@@ -5,13 +5,14 @@ import (
 	"errors"
 
 	commonapi "go-gin-ecommerce/internal/common/api"
+	commonpagination "go-gin-ecommerce/internal/common/pagination"
 	"go-gin-ecommerce/internal/products/dto"
 	"go-gin-ecommerce/internal/products/model"
 	"go-gin-ecommerce/internal/products/repository"
 )
 
 type Service interface {
-	List(ctx context.Context) ([]model.Product, error)
+	List(ctx context.Context, params commonpagination.Params) ([]model.Product, int64, error)
 	GetByID(ctx context.Context, id uint) (model.Product, error)
 	Create(ctx context.Context, request dto.CreateProductRequest) (model.Product, error)
 	Update(ctx context.Context, id uint, request dto.UpdateProductRequest) (model.Product, error)
@@ -26,8 +27,8 @@ func New(repo repository.Repository) *ProductService {
 	return &ProductService{repository: repo}
 }
 
-func (s *ProductService) List(ctx context.Context) ([]model.Product, error) {
-	return s.repository.List(ctx)
+func (s *ProductService) List(ctx context.Context, params commonpagination.Params) ([]model.Product, int64, error) {
+	return s.repository.List(ctx, params)
 }
 
 func (s *ProductService) GetByID(ctx context.Context, id uint) (model.Product, error) {
