@@ -142,6 +142,53 @@ func TestErrorHandlerSanitizesUnhandledErrors(t *testing.T) {
 	}
 }
 
+func TestErrorHandlerFormatsInvalidTimestampErrors(t *testing.T) {
+	t.Parallel()
+
+	router := newTestRouter()
+	router.POST("/v1/test", func(c *gin.Context) {
+		var payload struct {
+			StartsAt time.Time `json:"startsAt"`
+		}
+
+		if err := c.ShouldBindJSON(&payload); err != nil {
+			_ = c.Error(err)
+			return
+		}
+
+		c.Status(http.StatusCreated)
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/test", strings.NewReader(`{"startsAt":"not-a-time"}`))
+	req.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for invalid timestamp, got %d", recorder.Code)
+	}
+
+	response := decodeErrorResponse(t, recorder)
+
+	if response.Error.Code != "VALIDATION_ERROR" {
+		t.Fatalf("expected validation error code, got %q", response.Error.Code)
+	}
+
+	if len(response.Error.Details) != 1 {
+		t.Fatalf("expected a single validation detail, got %d", len(response.Error.Details))
+	}
+
+	detail := response.Error.Details[0]
+	if detail.Field != "body" {
+		t.Fatalf("expected validation detail field to be body, got %q", detail.Field)
+	}
+
+	if len(detail.Constraints) != 1 || detail.Constraints[0] != "body contains an invalid timestamp" {
+		t.Fatalf("expected invalid timestamp validation constraint, got %#v", detail.Constraints)
+	}
+}
+
 func TestRecoveryFormatsPanicErrors(t *testing.T) {
 	t.Parallel()
 

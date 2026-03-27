@@ -144,6 +144,30 @@ func TestCreatePromotionRejectsInvalidDateWindow(t *testing.T) {
 	}
 }
 
+func TestCreatePromotionRejectsInvalidTimestampFormat(t *testing.T) {
+	router := testutil.NewRouterWithDB(t)
+
+	recorder := performJSONRequest(t, router, http.MethodPost, "/v1/promotions", `{
+		"name": "Spring Sale",
+		"code": "SPRING-10",
+		"discountType": "percentage",
+		"discountValue": 10,
+		"startsAt": "not-a-time",
+		"status": "active"
+	}`)
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for invalid timestamp, got %d with body %s", recorder.Code, recorder.Body.String())
+	}
+
+	response := decodePromotionErrorResponse(t, recorder)
+	if response.Error.Code != "VALIDATION_ERROR" {
+		t.Fatalf("expected validation error code, got %q", response.Error.Code)
+	}
+	if len(response.Error.Details) != 1 || response.Error.Details[0].Field != "body" {
+		t.Fatalf("expected invalid timestamp validation detail, got %#v", response.Error.Details)
+	}
+}
+
 func TestPatchPromotionRejectsInvalidMergedDateWindow(t *testing.T) {
 	router := testutil.NewRouterWithDB(t)
 

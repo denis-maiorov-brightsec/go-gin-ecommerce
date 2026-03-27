@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"reflect"
 	"strings"
+	"time"
 
 	commonapi "go-gin-ecommerce/internal/common/api"
 
@@ -70,6 +71,14 @@ func normalizeError(err error) *commonapi.Error {
 		return commonapi.NewValidationError([]commonapi.ErrorDetail{{
 			Field:       field,
 			Constraints: []string{fmt.Sprintf("%s must be %s", field, humanizeType(typeErr.Type))},
+		}})
+	}
+
+	var timeErr *time.ParseError
+	if errors.As(err, &timeErr) {
+		return commonapi.NewValidationError([]commonapi.ErrorDetail{{
+			Field:       "body",
+			Constraints: []string{"body contains an invalid timestamp"},
 		}})
 	}
 
