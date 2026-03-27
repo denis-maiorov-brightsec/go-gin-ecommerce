@@ -4,12 +4,12 @@ import (
 	"fmt"
 	nethttp "net/http"
 	"net/url"
-	"strconv"
 	"time"
 
 	commonapi "go-gin-ecommerce/internal/common/api"
 	commonpagination "go-gin-ecommerce/internal/common/pagination"
 	"go-gin-ecommerce/internal/orders/dto"
+	ordershttp "go-gin-ecommerce/internal/orders/http"
 	"go-gin-ecommerce/internal/orders/queries/service"
 
 	"github.com/gin-gonic/gin"
@@ -47,7 +47,7 @@ func (h *Handler) List(c *gin.Context) {
 }
 
 func (h *Handler) GetByID(c *gin.Context) {
-	id, err := ParseOrderID(c.Param("id"))
+	id, err := ordershttp.ParseOrderID(c.Param("id"))
 	if err != nil {
 		_ = c.Error(err)
 		return
@@ -112,23 +112,4 @@ func parseDateFilter(raw string, field string) (*time.Time, error) {
 
 	utcValue := value.UTC()
 	return &utcValue, nil
-}
-
-func ParseOrderID(rawID string) (uint, error) {
-	id, err := strconv.ParseUint(rawID, 10, 64)
-	if err != nil || id == 0 {
-		return 0, commonapi.NewValidationError([]commonapi.ErrorDetail{{
-			Field:       "id",
-			Constraints: []string{"id must be a positive integer"},
-		}})
-	}
-
-	if strconv.IntSize == 32 && id > uint64(^uint32(0)) {
-		return 0, commonapi.NewValidationError([]commonapi.ErrorDetail{{
-			Field:       "id",
-			Constraints: []string{"id must be a positive integer"},
-		}})
-	}
-
-	return uint(id), nil
 }

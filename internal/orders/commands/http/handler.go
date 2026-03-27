@@ -5,7 +5,7 @@ import (
 
 	"go-gin-ecommerce/internal/orders/commands/service"
 	"go-gin-ecommerce/internal/orders/dto"
-	queryhttp "go-gin-ecommerce/internal/orders/queries/http"
+	ordershttp "go-gin-ecommerce/internal/orders/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,7 +23,7 @@ func (h *Handler) RegisterRoutes(group *gin.RouterGroup, writeMiddlewares ...gin
 }
 
 func (h *Handler) Cancel(c *gin.Context) {
-	id, err := queryhttp.ParseOrderID(c.Param("id"))
+	id, err := ordershttp.ParseOrderID(c.Param("id"))
 	if err != nil {
 		_ = c.Error(err)
 		return
