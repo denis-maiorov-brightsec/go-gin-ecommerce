@@ -60,3 +60,17 @@ func TestDeprecatedRootEndpoint(t *testing.T) {
 		t.Fatalf("expected deprecation message %q, got %q", want, response.Message)
 	}
 }
+
+func TestUnversionedHealthEndpointIsNotAvailable(t *testing.T) {
+	t.Parallel()
+
+	router := testutil.NewRouter()
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for /health, got %d", recorder.Code)
+	}
+}
