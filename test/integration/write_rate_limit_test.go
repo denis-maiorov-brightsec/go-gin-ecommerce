@@ -118,6 +118,42 @@ func TestWriteRateLimitAppliesToOrderCancelStateTransition(t *testing.T) {
 	})
 }
 
+func TestWriteRateLimitAppliesToPatchAndDeleteRoutes(t *testing.T) {
+	t.Run("products patch is limited", func(t *testing.T) {
+		router, database := newRateLimitedTestApp(t)
+
+		firstProductID := seedProduct(t, database, "Rate Limited Patch Product One", "rl-patch-1")
+		secondProductID := seedProduct(t, database, "Rate Limited Patch Product Two", "rl-patch-2")
+
+		first := performJSONRequest(t, router, http.MethodPatch, fmt.Sprintf("/v1/products/%d", firstProductID), `{
+			"price": 21.50
+		}`)
+		if first.Code != http.StatusOK {
+			t.Fatalf("expected first product patch to succeed, got %d with body %s", first.Code, first.Body.String())
+		}
+
+		second := performJSONRequest(t, router, http.MethodPatch, fmt.Sprintf("/v1/products/%d", secondProductID), `{
+			"price": 25.75
+		}`)
+		assertRateLimited(t, second)
+	})
+
+	t.Run("categories delete is limited", func(t *testing.T) {
+		router, database := newRateLimitedTestApp(t)
+
+		firstCategoryID := seedCategory(t, database, "Rate Limited Delete Category One", "rl-delete-category-1")
+		secondCategoryID := seedCategory(t, database, "Rate Limited Delete Category Two", "rl-delete-category-2")
+
+		first := performRequest(t, router, http.MethodDelete, fmt.Sprintf("/v1/categories/%d", firstCategoryID), "")
+		if first.Code != http.StatusNoContent {
+			t.Fatalf("expected first category delete to succeed, got %d with body %s", first.Code, first.Body.String())
+		}
+
+		second := performRequest(t, router, http.MethodDelete, fmt.Sprintf("/v1/categories/%d", secondCategoryID), "")
+		assertRateLimited(t, second)
+	})
+}
+
 func TestReadOnlyRoutesRemainUnaffectedByWriteRateLimit(t *testing.T) {
 	router := newRateLimitedRouterWithDB(t)
 
@@ -139,6 +175,17 @@ func newRateLimitedRouterWithDB(t *testing.T) http.Handler {
 	return testutil.NewRouterWithConfigAndDB(t, cfg)
 }
 
+func newRateLimitedTestApp(t *testing.T) (http.Handler, *gorm.DB) {
+	t.Helper()
+
+	cfg := testutil.NewTestConfig(t)
+	cfg.WriteRateLimitRequests = 1
+	cfg.WriteRateLimitWindow = time.Hour
+	database := testutil.NewTestDatabase(t, cfg)
+
+	return routes.NewWithDB(cfg, slog.Default(), database), database
+}
+
 func newRateLimitedOrdersTestApp(t *testing.T) (http.Handler, *gorm.DB) {
 	t.Helper()
 
@@ -148,6 +195,52 @@ func newRateLimitedOrdersTestApp(t *testing.T) (http.Handler, *gorm.DB) {
 	database := testutil.NewTestDatabase(t, cfg)
 
 	return routes.NewWithDB(cfg, slog.Default(), database), database
+}
+
+func seedProduct(t *testing.T, database *gorm.DB, name string, sku string) uint {
+	t.Helper()
+
+	createdAt := time.Date(2026, time.March, 1, 9, 0, 0, 0, time.UTC)
+
+	var productID uint
+	row := database.Raw(
+		`INSERT INTO products (name, sku, price, status, created_at, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?)
+		 RETURNING id`,
+		name,
+		sku,
+		19.99,
+		"active",
+		createdAt,
+		createdAt,
+	).Row()
+	if err := row.Scan(&productID); err != nil {
+		t.Fatalf("failed to insert product: %v", err)
+	}
+
+	return productID
+}
+
+func seedCategory(t *testing.T, database *gorm.DB, name string, slug string) uint {
+	t.Helper()
+
+	createdAt := time.Date(2026, time.March, 1, 9, 0, 0, 0, time.UTC)
+
+	var categoryID uint
+	row := database.Raw(
+		`INSERT INTO categories (name, slug, created_at, updated_at)
+		 VALUES (?, ?, ?, ?)
+		 RETURNING id`,
+		name,
+		slug,
+		createdAt,
+		createdAt,
+	).Row()
+	if err := row.Scan(&categoryID); err != nil {
+		t.Fatalf("failed to insert category: %v", err)
+	}
+
+	return categoryID
 }
 
 func assertRateLimited(t *testing.T, recorder *httptest.ResponseRecorder) {
