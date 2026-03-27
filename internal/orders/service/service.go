@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"time"
 
 	commonapi "go-gin-ecommerce/internal/common/api"
 	"go-gin-ecommerce/internal/orders/dto"
@@ -13,6 +14,7 @@ import (
 type Service interface {
 	List(ctx context.Context, params dto.ListOrdersParams) ([]model.Order, int64, error)
 	GetByID(ctx context.Context, id uint) (model.Order, error)
+	Cancel(ctx context.Context, id uint) (model.Order, error)
 }
 
 type OrderService struct {
@@ -34,6 +36,33 @@ func (s *OrderService) GetByID(ctx context.Context, id uint) (model.Order, error
 	}
 
 	return order, nil
+}
+
+func (s *OrderService) Cancel(ctx context.Context, id uint) (model.Order, error) {
+	order, err := s.repository.GetByID(ctx, id)
+	if err != nil {
+		return model.Order{}, mapRepositoryError(err)
+	}
+
+	if order.Status != "pending" {
+		return model.Order{}, commonapi.NewConflictError("Order cannot be cancelled", []commonapi.ErrorDetail{{
+			Field:       "status",
+			Constraints: []string{"only pending orders can be cancelled"},
+		}})
+	}
+
+	order.Status = "cancelled"
+	order.UpdatedAt = time.Now().UTC()
+	if err := s.repository.Update(ctx, &order); err != nil {
+		return model.Order{}, mapRepositoryError(err)
+	}
+
+	updatedOrder, err := s.repository.GetByID(ctx, id)
+	if err != nil {
+		return model.Order{}, mapRepositoryError(err)
+	}
+
+	return updatedOrder, nil
 }
 
 func mapRepositoryError(err error) error {

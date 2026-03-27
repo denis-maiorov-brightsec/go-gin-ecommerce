@@ -28,6 +28,7 @@ func NewHandler(service service.Service) *Handler {
 func (h *Handler) RegisterRoutes(group *gin.RouterGroup) {
 	group.GET("", h.List)
 	group.GET("/:id", h.GetByID)
+	group.POST("/:id/cancel", h.Cancel)
 }
 
 func (h *Handler) List(c *gin.Context) {
@@ -54,6 +55,22 @@ func (h *Handler) GetByID(c *gin.Context) {
 	}
 
 	order, err := h.service.GetByID(c.Request.Context(), id)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	c.JSON(nethttp.StatusOK, dto.NewOrderResponse(order))
+}
+
+func (h *Handler) Cancel(c *gin.Context) {
+	id, err := parseOrderID(c.Param("id"))
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	order, err := h.service.Cancel(c.Request.Context(), id)
 	if err != nil {
 		_ = c.Error(err)
 		return

@@ -13,6 +13,7 @@ import (
 type Repository interface {
 	List(ctx context.Context, params dto.ListOrdersParams) ([]model.Order, int64, error)
 	GetByID(ctx context.Context, id uint) (model.Order, error)
+	Update(ctx context.Context, order *model.Order) error
 }
 
 var ErrNotFound = errors.New("order not found")
@@ -63,6 +64,24 @@ func (r *GormRepository) GetByID(ctx context.Context, id uint) (model.Order, err
 	}
 
 	return order, nil
+}
+
+func (r *GormRepository) Update(ctx context.Context, order *model.Order) error {
+	result := r.db.WithContext(ctx).
+		Model(&model.Order{}).
+		Where("id = ?", order.ID).
+		Updates(map[string]any{
+			"status":     order.Status,
+			"updated_at": order.UpdatedAt,
+		})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return ErrNotFound
+	}
+
+	return nil
 }
 
 func (r *GormRepository) filteredQuery(ctx context.Context, params dto.ListOrdersParams) *gorm.DB {

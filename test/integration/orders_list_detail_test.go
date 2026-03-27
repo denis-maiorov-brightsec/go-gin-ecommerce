@@ -105,6 +105,93 @@ func TestGetMissingOrderReturnsNotFoundEnvelope(t *testing.T) {
 	}
 }
 
+func TestCancelOrderTransitionsPendingToCancelled(t *testing.T) {
+	router, database := newOrdersTestApp(t)
+
+	orderID := seedOrder(t, database, orderSeed{
+		Status:      "pending",
+		CustomerID:  101,
+		TotalAmount: 55.50,
+		CreatedAt:   time.Date(2026, time.January, 10, 9, 0, 0, 0, time.UTC),
+		Items: []orderItemSeed{
+			{Name: "Desk Lamp", Quantity: 1, UnitPrice: 40.00, LineAmount: 40.00},
+		},
+	})
+
+	recorder := performRequest(t, router, http.MethodPost, fmt.Sprintf("/v1/orders/%d/cancel", orderID), "")
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200 when cancelling order, got %d with body %s", recorder.Code, recorder.Body.String())
+	}
+
+	response := decodeOrderResponse(t, recorder)
+	if response.ID != orderID || response.Status != "cancelled" {
+		t.Fatalf("expected cancelled order response, got %#v", response)
+	}
+	if !response.UpdatedAt.After(response.CreatedAt) {
+		t.Fatalf("expected updated_at to advance after cancellation, got created=%s updated=%s", response.CreatedAt, response.UpdatedAt)
+	}
+
+	var persisted struct {
+		Status    string
+		UpdatedAt time.Time
+	}
+	if err := database.Raw(`SELECT status, updated_at FROM orders WHERE id = ?`, orderID).Scan(&persisted).Error; err != nil {
+		t.Fatalf("failed to load persisted order: %v", err)
+	}
+	if persisted.Status != "cancelled" {
+		t.Fatalf("expected persisted cancelled status, got %#v", persisted)
+	}
+}
+
+func TestCancelMissingOrderReturnsNotFoundEnvelope(t *testing.T) {
+	router, _ := newOrdersTestApp(t)
+
+	recorder := performRequest(t, router, http.MethodPost, "/v1/orders/999/cancel", "")
+	if recorder.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for missing order cancel, got %d with body %s", recorder.Code, recorder.Body.String())
+	}
+
+	response := decodeOrderErrorResponse(t, recorder)
+	if response.Error.Code != "NOT_FOUND" {
+		t.Fatalf("expected NOT_FOUND error code, got %q", response.Error.Code)
+	}
+}
+
+func TestCancelOrderRejectsIneligibleStatus(t *testing.T) {
+	router, database := newOrdersTestApp(t)
+
+	orderID := seedOrder(t, database, orderSeed{
+		Status:      "fulfilled",
+		CustomerID:  202,
+		TotalAmount: 20.00,
+		CreatedAt:   time.Date(2026, time.January, 11, 11, 30, 0, 0, time.UTC),
+		Items: []orderItemSeed{
+			{Name: "Mouse Pad", Quantity: 1, UnitPrice: 20.00, LineAmount: 20.00},
+		},
+	})
+
+	recorder := performRequest(t, router, http.MethodPost, fmt.Sprintf("/v1/orders/%d/cancel", orderID), "")
+	if recorder.Code != http.StatusConflict {
+		t.Fatalf("expected 409 for ineligible order cancel, got %d with body %s", recorder.Code, recorder.Body.String())
+	}
+
+	response := decodeOrderErrorResponse(t, recorder)
+	if response.Error.Code != "CONFLICT" {
+		t.Fatalf("expected CONFLICT error code, got %q", response.Error.Code)
+	}
+	if len(response.Error.Details) != 1 || response.Error.Details[0].Field != "status" {
+		t.Fatalf("expected status conflict detail, got %#v", response.Error.Details)
+	}
+
+	var persistedStatus string
+	if err := database.Raw(`SELECT status FROM orders WHERE id = ?`, orderID).Scan(&persistedStatus).Error; err != nil {
+		t.Fatalf("failed to load order status: %v", err)
+	}
+	if persistedStatus != "fulfilled" {
+		t.Fatalf("expected status to remain fulfilled, got %q", persistedStatus)
+	}
+}
+
 func TestListOrdersRejectsInvalidDateFilters(t *testing.T) {
 	router, _ := newOrdersTestApp(t)
 
