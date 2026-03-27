@@ -124,8 +124,12 @@ func validationConstraint(field string, validationErr validator.FieldError) stri
 		return fmt.Sprintf("%s must be one of %s", field, strings.ReplaceAll(validationErr.Param(), " ", ", "))
 	case "gte":
 		return fmt.Sprintf("%s must be greater than or equal to %s", field, validationErr.Param())
+	case "gt":
+		return fmt.Sprintf("%s must be greater than %s", field, validationErr.Param())
 	case "lte":
 		return fmt.Sprintf("%s must be less than or equal to %s", field, validationErr.Param())
+	case "lt":
+		return fmt.Sprintf("%s must be less than %s", field, validationErr.Param())
 	default:
 		return fmt.Sprintf("%s failed validation on %s", field, validationErr.Tag())
 	}

@@ -12,6 +12,7 @@ import (
 
 	"go-gin-ecommerce/internal/http/routes"
 	"go-gin-ecommerce/internal/platform/config"
+	platformdb "go-gin-ecommerce/internal/platform/db"
 	"go-gin-ecommerce/internal/platform/httpserver"
 	"go-gin-ecommerce/internal/platform/logger"
 )
@@ -24,7 +25,13 @@ func main() {
 	}
 
 	appLogger := logger.New(cfg.LogLevel)
-	router := routes.New(cfg, appLogger)
+	database, err := platformdb.Open(cfg)
+	if err != nil {
+		appLogger.Error("failed to open database", "error", err)
+		os.Exit(1)
+	}
+
+	router := routes.NewWithDB(cfg, appLogger, database)
 	server := httpserver.New(cfg.HTTPAddr(), router)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

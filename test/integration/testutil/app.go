@@ -2,6 +2,7 @@ package testutil
 
 import (
 	"log/slog"
+	"testing"
 
 	"go-gin-ecommerce/internal/http/routes"
 	"go-gin-ecommerce/internal/platform/config"
@@ -17,4 +18,15 @@ func NewRouter() *gin.Engine {
 		Port:     "0",
 		LogLevel: "error",
 	}, slog.Default())
+}
+
+func NewRouterWithDB(t *testing.T) *gin.Engine {
+	t.Helper()
+
+	cfg := NewTestConfig(t)
+	database := NewTestDatabase(t, cfg)
+
+	gin.SetMode(gin.TestMode)
+
+	return routes.NewWithDB(cfg, slog.Default(), database)
 }

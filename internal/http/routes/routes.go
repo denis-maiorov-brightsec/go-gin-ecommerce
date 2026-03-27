@@ -7,8 +7,12 @@ import (
 	commonapi "go-gin-ecommerce/internal/common/api"
 	"go-gin-ecommerce/internal/platform/config"
 	"go-gin-ecommerce/internal/platform/middleware"
+	producthttp "go-gin-ecommerce/internal/products/http"
+	productrepository "go-gin-ecommerce/internal/products/repository"
+	productservice "go-gin-ecommerce/internal/products/service"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 const (
@@ -17,6 +21,10 @@ const (
 )
 
 func New(cfg config.Config, logger *slog.Logger) *gin.Engine {
+	return NewWithDB(cfg, logger, nil)
+}
+
+func NewWithDB(cfg config.Config, logger *slog.Logger, database *gorm.DB) *gin.Engine {
 	if cfg.AppEnv == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -35,6 +43,10 @@ func New(cfg config.Config, logger *slog.Logger) *gin.Engine {
 	v1.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, commonapi.StatusResponse{Status: "ok"})
 	})
+	if database != nil {
+		productHandler := producthttp.NewHandler(productservice.New(productrepository.New(database)))
+		productHandler.RegisterRoutes(v1.Group("/products"))
+	}
 
 	// Keep the root route temporarily for transition while directing clients to /v1.
 	router.GET("/", func(c *gin.Context) {
