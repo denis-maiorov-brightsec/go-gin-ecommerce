@@ -52,6 +52,43 @@ func TestValidationErrorsUseGlobalEnvelope(t *testing.T) {
 	}
 }
 
+func TestBindJSONValidationErrorsUseGlobalEnvelope(t *testing.T) {
+	t.Parallel()
+
+	router := testutil.NewRouter()
+	router.POST("/v1/test-validation", func(c *gin.Context) {
+		var payload struct {
+			Name string `json:"name" binding:"required"`
+		}
+
+		if err := c.BindJSON(&payload); err != nil {
+			return
+		}
+
+		c.Status(http.StatusCreated)
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/test-validation", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for invalid payload, got %d", recorder.Code)
+	}
+
+	response := decodeIntegrationErrorResponse(t, recorder)
+
+	if response.Error.Code != "VALIDATION_ERROR" {
+		t.Fatalf("expected validation error code, got %q", response.Error.Code)
+	}
+
+	if len(response.Error.Details) != 1 || response.Error.Details[0].Field != "name" {
+		t.Fatalf("expected validation details for name, got %#v", response.Error.Details)
+	}
+}
+
 func TestInternalErrorsUseSanitizedGlobalEnvelope(t *testing.T) {
 	t.Parallel()
 

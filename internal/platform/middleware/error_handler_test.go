@@ -73,6 +73,43 @@ func TestErrorHandlerFormatsValidationErrors(t *testing.T) {
 	}
 }
 
+func TestErrorHandlerFormatsBindJSONValidationErrors(t *testing.T) {
+	t.Parallel()
+
+	router := newTestRouter()
+	router.POST("/v1/test", func(c *gin.Context) {
+		var payload struct {
+			Name string `json:"name" binding:"required"`
+		}
+
+		if err := c.BindJSON(&payload); err != nil {
+			return
+		}
+
+		c.Status(http.StatusCreated)
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/test", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for bind validation failure, got %d", recorder.Code)
+	}
+
+	response := decodeErrorResponse(t, recorder)
+
+	if response.Error.Code != "VALIDATION_ERROR" {
+		t.Fatalf("expected validation error code, got %q", response.Error.Code)
+	}
+
+	if len(response.Error.Details) != 1 || response.Error.Details[0].Field != "name" {
+		t.Fatalf("expected validation details for name, got %#v", response.Error.Details)
+	}
+}
+
 func TestErrorHandlerSanitizesUnhandledErrors(t *testing.T) {
 	t.Parallel()
 

@@ -19,7 +19,11 @@ func ErrorHandler(logger *slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Next()
 
-		if len(c.Errors) == 0 || c.Writer.Written() {
+		if len(c.Errors) == 0 {
+			return
+		}
+
+		if c.Writer.Written() && c.Writer.Size() > 0 {
 			return
 		}
 
