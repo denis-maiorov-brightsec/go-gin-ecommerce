@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	commonapi "go-gin-ecommerce/internal/common/api"
@@ -110,5 +111,62 @@ func TestUnversionedHealthRouteIsNotRegistered(t *testing.T) {
 
 	if response.Error.Message != "Resource not found" {
 		t.Fatalf("expected not-found message, got %q", response.Error.Message)
+	}
+}
+
+func TestSwaggerUIRouteIsRegistered(t *testing.T) {
+	t.Parallel()
+
+	router := routes.New(config.Config{AppEnv: "test"}, slog.Default())
+	req := httptest.NewRequest(http.MethodGet, "/swagger/index.html", nil)
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200 for swagger ui route, got %d", recorder.Code)
+	}
+
+	if contentType := recorder.Header().Get("Content-Type"); !strings.Contains(contentType, "text/html") {
+		t.Fatalf("expected swagger ui to return html, got %q", contentType)
+	}
+}
+
+func TestSwaggerDocIncludesProductsAndOrdersOperations(t *testing.T) {
+	t.Parallel()
+
+	router := routes.New(config.Config{AppEnv: "test"}, slog.Default())
+	req := httptest.NewRequest(http.MethodGet, "/swagger/doc.json", nil)
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200 for swagger doc route, got %d", recorder.Code)
+	}
+
+	var response struct {
+		BasePath string                     `json:"basePath"`
+		Paths    map[string]json.RawMessage `json:"paths"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode swagger doc: %v", err)
+	}
+
+	if response.BasePath != "/v1" {
+		t.Fatalf("expected swagger basePath to be /v1, got %q", response.BasePath)
+	}
+
+	requiredPaths := []string{
+		"/products",
+		"/products/{id}",
+		"/orders",
+		"/orders/{id}",
+		"/orders/{id}/cancel",
+	}
+	for _, path := range requiredPaths {
+		if _, ok := response.Paths[path]; !ok {
+			t.Fatalf("expected swagger doc to include path %q", path)
+		}
 	}
 }
