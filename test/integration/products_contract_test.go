@@ -235,6 +235,32 @@ func TestProductsContractValidationErrorEnvelope(t *testing.T) {
 	}
 }
 
+func TestProductsContractPatchAcceptsDeprecatedSKUAlias(t *testing.T) {
+	router := testutil.NewRouterWithDB(t)
+
+	createRecorder := performJSONRequest(t, router, http.MethodPost, "/v1/products", `{
+		"name": "Patch Alias Contract Product",
+		"stockKeepingUnit": "PATCH-CONTRACT-001",
+		"price": 29.99,
+		"status": "active"
+	}`)
+	if createRecorder.Code != http.StatusCreated {
+		t.Fatalf("expected 201 when seeding product, got %d with body %s", createRecorder.Code, createRecorder.Body.String())
+	}
+
+	updateRecorder := performJSONRequest(t, router, http.MethodPatch, "/v1/products/1", `{
+		"sku": "PATCH-CONTRACT-002"
+	}`)
+	if updateRecorder.Code != http.StatusOK {
+		t.Fatalf("expected 200 when patching product with deprecated sku alias, got %d with body %s", updateRecorder.Code, updateRecorder.Body.String())
+	}
+
+	updated := decodeJSONMap(t, updateRecorder.Body.Bytes())
+	assertJSONKeys(t, updated, "updated product", "createdAt", "id", "name", "price", "status", "stockKeepingUnit", "updatedAt")
+	assertNoJSONKey(t, updated, "sku")
+	assertJSONStringValue(t, updated, "stockKeepingUnit", "PATCH-CONTRACT-002")
+}
+
 func TestProductsContractNotFoundErrorEnvelope(t *testing.T) {
 	router := testutil.NewRouterWithDB(t)
 
