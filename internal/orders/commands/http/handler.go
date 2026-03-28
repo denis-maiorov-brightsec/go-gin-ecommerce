@@ -5,7 +5,6 @@ import (
 
 	"go-gin-ecommerce/internal/orders/commands/service"
 	"go-gin-ecommerce/internal/orders/dto"
-	ordershttp "go-gin-ecommerce/internal/orders/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -37,7 +36,7 @@ func (h *Handler) RegisterRoutes(group *gin.RouterGroup, writeMiddlewares ...gin
 // @Failure 500 {object} api.ErrorResponse
 // @Router /orders/{id}/cancel [post]
 func (h *Handler) Cancel(c *gin.Context) {
-	id, err := ordershttp.ParseOrderID(c.Param("id"))
+	id, err := dto.ParseOrderID(c.Param("id"))
 	if err != nil {
 		_ = c.Error(err)
 		return

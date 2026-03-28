@@ -1,15 +1,32 @@
-package http
+package dto
 
 import (
 	"net/url"
 	"testing"
 	"time"
-
-	"go-gin-ecommerce/internal/orders/dto"
 )
 
+func TestParseOrderIDAcceptsPositiveInteger(t *testing.T) {
+	id, err := ParseOrderID("42")
+	if err != nil {
+		t.Fatalf("expected valid order id, got %v", err)
+	}
+
+	if id != 42 {
+		t.Fatalf("expected order id 42, got %d", id)
+	}
+}
+
+func TestParseOrderIDRejectsInvalidValues(t *testing.T) {
+	for _, rawID := range []string{"", "0", "-1", "abc"} {
+		if _, err := ParseOrderID(rawID); err == nil {
+			t.Fatalf("expected %q to be rejected", rawID)
+		}
+	}
+}
+
 func TestParseListOrdersParamsParsesFilters(t *testing.T) {
-	params, err := dto.ParseListOrdersParams(url.Values{
+	params, err := ParseListOrdersParams(url.Values{
 		"page":   []string{"2"},
 		"limit":  []string{"5"},
 		"status": []string{"pending"},
@@ -35,7 +52,7 @@ func TestParseListOrdersParamsParsesFilters(t *testing.T) {
 }
 
 func TestParseListOrdersParamsRejectsInvalidDateRange(t *testing.T) {
-	_, err := dto.ParseListOrdersParams(url.Values{
+	_, err := ParseListOrdersParams(url.Values{
 		"from": []string{"2026-01-12"},
 		"to":   []string{"2026-01-10"},
 	})
@@ -45,7 +62,7 @@ func TestParseListOrdersParamsRejectsInvalidDateRange(t *testing.T) {
 }
 
 func TestParseListOrdersParamsRejectsInvalidDateFormat(t *testing.T) {
-	_, err := dto.ParseListOrdersParams(url.Values{
+	_, err := ParseListOrdersParams(url.Values{
 		"from": []string{"2026-99-10"},
 	})
 	if err == nil {

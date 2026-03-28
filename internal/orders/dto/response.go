@@ -3,16 +3,8 @@ package dto
 import (
 	"time"
 
-	commonpagination "go-gin-ecommerce/internal/common/pagination"
 	"go-gin-ecommerce/internal/orders/model"
 )
-
-type ListOrdersParams struct {
-	Pagination commonpagination.Params
-	Status     string
-	From       *time.Time
-	To         *time.Time
-}
 
 type OrderItemResponse struct {
 	ID         uint    `json:"id" example:"501"`
