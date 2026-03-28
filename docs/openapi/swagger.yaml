@@ -1,0 +1,515 @@
+basePath: /v1
+definitions:
+  api.ErrorDetail:
+    properties:
+      constraints:
+        example:
+        - stockKeepingUnit must not be empty
+        items:
+          type: string
+        type: array
+      field:
+        example: stockKeepingUnit
+        type: string
+    type: object
+  api.ErrorPayload:
+    properties:
+      code:
+        example: VALIDATION_ERROR
+        type: string
+      details:
+        items:
+          $ref: '#/definitions/api.ErrorDetail'
+        type: array
+      message:
+        example: Request validation failed
+        type: string
+    type: object
+  api.ErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/api.ErrorPayload'
+      path:
+        example: /v1/products
+        type: string
+      timestamp:
+        example: "2026-03-28T12:34:56.000Z"
+        type: string
+    type: object
+  dto.OrderItemResponse:
+    properties:
+      id:
+        example: 501
+        type: integer
+      lineAmount:
+        example: 259.98
+        type: number
+      name:
+        example: Trail Running Shoes
+        type: string
+      productId:
+        example: 42
+        type: integer
+      quantity:
+        example: 2
+        type: integer
+      unitPrice:
+        example: 129.99
+        type: number
+    type: object
+  dto.OrderListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/dto.OrderResponse'
+        type: array
+      limit:
+        example: 20
+        type: integer
+      page:
+        example: 1
+        type: integer
+      total:
+        example: 1
+        type: integer
+      totalPages:
+        example: 1
+        type: integer
+    type: object
+  dto.OrderResponse:
+    properties:
+      createdAt:
+        example: "2026-03-01T10:00:00Z"
+        type: string
+      customerId:
+        example: 88
+        type: integer
+      id:
+        example: 1001
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/dto.OrderItemResponse'
+        type: array
+      status:
+        example: pending
+        type: string
+      totalAmount:
+        example: 259.98
+        type: number
+      updatedAt:
+        example: "2026-03-02T11:00:00Z"
+        type: string
+    type: object
+  dto.ProductCreateExample:
+    properties:
+      categoryId:
+        example: 3
+        type: integer
+      name:
+        example: Trail Running Shoes
+        type: string
+      price:
+        example: 129.99
+        type: number
+      sku:
+        description: 'Deprecated: sku is accepted as a request alias for backward
+          compatibility.'
+        example: TRAIL-001
+        type: string
+      status:
+        example: active
+        type: string
+      stockKeepingUnit:
+        example: TRAIL-001
+        type: string
+    type: object
+  dto.ProductListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/dto.ProductResponse'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+  dto.ProductResponse:
+    properties:
+      categoryId:
+        example: 3
+        type: integer
+      createdAt:
+        example: "2026-03-01T10:00:00Z"
+        type: string
+      id:
+        example: 42
+        type: integer
+      name:
+        example: Trail Running Shoes
+        type: string
+      price:
+        example: 129.99
+        type: number
+      status:
+        example: active
+        type: string
+      stockKeepingUnit:
+        example: TRAIL-001
+        type: string
+      updatedAt:
+        example: "2026-03-02T11:00:00Z"
+        type: string
+    type: object
+  dto.ProductUpdateExample:
+    properties:
+      categoryId:
+        example: 3
+        type: integer
+      name:
+        example: Trail Running Shoes
+        type: string
+      price:
+        example: 139.99
+        type: number
+      sku:
+        description: 'Deprecated: sku is accepted as a request alias for backward
+          compatibility.'
+        example: TRAIL-001
+        type: string
+      status:
+        example: active
+        type: string
+      stockKeepingUnit:
+        example: TRAIL-001
+        type: string
+    type: object
+info:
+  contact: {}
+  description: Versioned backoffice API for ecommerce management.
+  title: Go Gin Ecommerce Backoffice API
+  version: "1.0"
+paths:
+  /orders:
+    get:
+      description: Returns a paginated list of orders with optional status and date
+        filters.
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Page size
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - description: Order status filter
+        example: pending
+        in: query
+        name: status
+        type: string
+      - description: Start date filter in YYYY-MM-DD format
+        example: "2026-03-01"
+        in: query
+        name: from
+        type: string
+      - description: End date filter in YYYY-MM-DD format
+        example: "2026-03-31"
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.OrderListResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: List orders
+      tags:
+      - orders
+  /orders/{id}:
+    get:
+      description: Returns a single order with line items by numeric identifier.
+      parameters:
+      - description: Order ID
+        in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.OrderResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Get order
+      tags:
+      - orders
+  /orders/{id}/cancel:
+    post:
+      consumes:
+      - application/json
+      description: Executes the order cancel state transition for an existing order
+        and returns the updated order resource.
+      parameters:
+      - description: Order ID
+        in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.OrderResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Cancel order
+      tags:
+      - orders
+  /products:
+    get:
+      description: Returns a paginated list of products for the v1 backoffice API.
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Page size
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ProductListResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: List products
+      tags:
+      - products
+    post:
+      consumes:
+      - application/json
+      description: Creates a product. The deprecated `sku` field is accepted as an
+        alias for `stockKeepingUnit`; if both are sent they must match.
+      parameters:
+      - description: Create product payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ProductCreateExample'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.ProductResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Create product
+      tags:
+      - products
+  /products/{id}:
+    delete:
+      description: Deletes a product by numeric identifier.
+      parameters:
+      - description: Product ID
+        in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Delete product
+      tags:
+      - products
+    get:
+      description: Returns a single product by numeric identifier.
+      parameters:
+      - description: Product ID
+        in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ProductResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Get product
+      tags:
+      - products
+    patch:
+      consumes:
+      - application/json
+      description: Partially updates a product. The deprecated `sku` field is accepted
+        as an alias for `stockKeepingUnit`; if both are sent they must match.
+      parameters:
+      - description: Product ID
+        in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      - description: Update product payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ProductUpdateExample'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ProductResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Update product
+      tags:
+      - products
+schemes:
+- http
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

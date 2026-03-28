@@ -8,19 +8,19 @@ import (
 const timestampLayout = "2006-01-02T15:04:05.000Z07:00"
 
 type ErrorDetail struct {
-	Field       string   `json:"field,omitempty"`
-	Constraints []string `json:"constraints,omitempty"`
+	Field       string   `json:"field,omitempty" example:"stockKeepingUnit"`
+	Constraints []string `json:"constraints,omitempty" example:"stockKeepingUnit must not be empty"`
 }
 
 type ErrorPayload struct {
-	Code    string        `json:"code"`
-	Message string        `json:"message"`
+	Code    string        `json:"code" example:"VALIDATION_ERROR"`
+	Message string        `json:"message" example:"Request validation failed"`
 	Details []ErrorDetail `json:"details,omitempty"`
 }
 
 type ErrorResponse struct {
-	Timestamp string       `json:"timestamp"`
-	Path      string       `json:"path"`
+	Timestamp string       `json:"timestamp" example:"2026-03-28T12:34:56.000Z"`
+	Path      string       `json:"path" example:"/v1/products"`
 	Error     ErrorPayload `json:"error"`
 }
 

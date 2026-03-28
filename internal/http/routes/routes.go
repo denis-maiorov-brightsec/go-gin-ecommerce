@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	_ "go-gin-ecommerce/docs/openapi"
 	categoryhttp "go-gin-ecommerce/internal/categories/http"
 	categoryrepository "go-gin-ecommerce/internal/categories/repository"
 	categoryservice "go-gin-ecommerce/internal/categories/service"
@@ -26,6 +27,8 @@ import (
 	searchhttp "go-gin-ecommerce/internal/search/http"
 
 	"github.com/gin-gonic/gin"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/gorm"
 )
 
@@ -54,6 +57,7 @@ func NewWithDB(cfg config.Config, logger *slog.Logger, database *gorm.DB) *gin.E
 	router.Use(middleware.RequestLogger(logger))
 	router.Use(middleware.Recovery(logger))
 	router.Use(middleware.ErrorHandler(logger))
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 	router.NoRoute(func(c *gin.Context) {
 		apiErr := commonapi.NewNotFoundError()
 		c.AbortWithStatusJSON(apiErr.Status, commonapi.NewErrorResponse(c.Request.URL.Path, apiErr))

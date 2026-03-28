@@ -10,34 +10,34 @@ import (
 )
 
 type CreateProductRequest struct {
-	Name             string  `json:"name" binding:"required,min=1"`
-	StockKeepingUnit *string `json:"stockKeepingUnit" binding:"omitempty,min=1"`
+	Name             string  `json:"name" binding:"required,min=1" example:"Trail Running Shoes"`
+	StockKeepingUnit *string `json:"stockKeepingUnit" binding:"omitempty,min=1" example:"TRAIL-001"`
 	// Deprecated: sku is accepted as a request alias for backward compatibility.
-	SKUAlias   *string `json:"sku" binding:"omitempty,min=1"`
-	Price      float64 `json:"price" binding:"required,gt=0"`
-	Status     string  `json:"status" binding:"required,min=1"`
-	CategoryID *uint   `json:"categoryId"`
+	SKUAlias   *string `json:"sku" binding:"omitempty,min=1" example:"TRAIL-001"`
+	Price      float64 `json:"price" binding:"required,gt=0" example:"129.99"`
+	Status     string  `json:"status" binding:"required,min=1" example:"active"`
+	CategoryID *uint   `json:"categoryId" example:"3"`
 }
 
 type UpdateProductRequest struct {
-	Name             *string `json:"name" binding:"omitempty,min=1"`
-	StockKeepingUnit *string `json:"stockKeepingUnit" binding:"omitempty,min=1"`
+	Name             *string `json:"name" binding:"omitempty,min=1" example:"Trail Running Shoes"`
+	StockKeepingUnit *string `json:"stockKeepingUnit" binding:"omitempty,min=1" example:"TRAIL-001"`
 	// Deprecated: sku is accepted as a request alias for backward compatibility.
-	SKUAlias   *string      `json:"sku" binding:"omitempty,min=1"`
-	Price      *float64     `json:"price" binding:"omitempty,gt=0"`
-	Status     *string      `json:"status" binding:"omitempty,min=1"`
+	SKUAlias   *string      `json:"sku" binding:"omitempty,min=1" example:"TRAIL-001"`
+	Price      *float64     `json:"price" binding:"omitempty,gt=0" example:"139.99"`
+	Status     *string      `json:"status" binding:"omitempty,min=1" example:"active"`
 	CategoryID OptionalUint `json:"categoryId"`
 }
 
 type ProductResponse struct {
-	ID               uint      `json:"id"`
-	Name             string    `json:"name"`
-	StockKeepingUnit string    `json:"stockKeepingUnit"`
-	Price            float64   `json:"price"`
-	Status           string    `json:"status"`
-	CategoryID       *uint     `json:"categoryId,omitempty"`
-	CreatedAt        time.Time `json:"createdAt"`
-	UpdatedAt        time.Time `json:"updatedAt"`
+	ID               uint      `json:"id" example:"42"`
+	Name             string    `json:"name" example:"Trail Running Shoes"`
+	StockKeepingUnit string    `json:"stockKeepingUnit" example:"TRAIL-001"`
+	Price            float64   `json:"price" example:"129.99"`
+	Status           string    `json:"status" example:"active"`
+	CategoryID       *uint     `json:"categoryId,omitempty" example:"3"`
+	CreatedAt        time.Time `json:"createdAt" example:"2026-03-01T10:00:00Z"`
+	UpdatedAt        time.Time `json:"updatedAt" example:"2026-03-02T11:00:00Z"`
 }
 
 type ProductListResponse struct {
@@ -74,6 +74,28 @@ type OptionalUint struct {
 	Set   bool
 	Null  bool
 	Value uint
+}
+
+// ProductCreateExample is a documentation-only example payload for create requests.
+type ProductCreateExample struct {
+	Name             string  `json:"name" example:"Trail Running Shoes"`
+	StockKeepingUnit *string `json:"stockKeepingUnit,omitempty" example:"TRAIL-001"`
+	// Deprecated: sku is accepted as a request alias for backward compatibility.
+	SKUAlias   *string `json:"sku,omitempty" example:"TRAIL-001"`
+	Price      float64 `json:"price" example:"129.99"`
+	Status     string  `json:"status" example:"active"`
+	CategoryID *uint   `json:"categoryId,omitempty" example:"3"`
+}
+
+// ProductUpdateExample is a documentation-only example payload for patch requests.
+type ProductUpdateExample struct {
+	Name             *string `json:"name,omitempty" example:"Trail Running Shoes"`
+	StockKeepingUnit *string `json:"stockKeepingUnit,omitempty" example:"TRAIL-001"`
+	// Deprecated: sku is accepted as a request alias for backward compatibility.
+	SKUAlias   *string  `json:"sku,omitempty" example:"TRAIL-001"`
+	Price      *float64 `json:"price,omitempty" example:"139.99"`
+	Status     *string  `json:"status,omitempty" example:"active"`
+	CategoryID *uint    `json:"categoryId,omitempty" example:"3"`
 }
 
 func (r CreateProductRequest) ResolvedStockKeepingUnit() (string, error) {

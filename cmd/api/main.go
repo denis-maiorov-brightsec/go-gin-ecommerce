@@ -17,6 +17,14 @@ import (
 	"go-gin-ecommerce/internal/platform/logger"
 )
 
+// @title Go Gin Ecommerce Backoffice API
+// @version 1.0
+// @description Versioned backoffice API for ecommerce management.
+// @BasePath /v1
+// @schemes http
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
