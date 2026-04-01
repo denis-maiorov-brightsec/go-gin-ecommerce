@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	commonmodel "go-gin-ecommerce/internal/common/model"
+	"time"
+)
 
 type Promotion struct {
 	ID            uint       `gorm:"primaryKey"`
@@ -11,8 +14,7 @@ type Promotion struct {
 	StartsAt      *time.Time `gorm:"column:starts_at"`
 	EndsAt        *time.Time `gorm:"column:ends_at"`
 	Status        string     `gorm:"type:text;not null"`
-	CreatedAt     time.Time  `gorm:"not null"`
-	UpdatedAt     time.Time  `gorm:"not null"`
+	commonmodel.AuditFields
 }
 
 func (Promotion) TableName() string {

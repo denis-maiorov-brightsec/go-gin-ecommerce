@@ -1,6 +1,6 @@
 package model
 
-import "time"
+import commonmodel "go-gin-ecommerce/internal/common/model"
 
 type Order struct {
 	ID          uint        `gorm:"primaryKey"`
@@ -8,8 +8,7 @@ type Order struct {
 	CustomerID  uint        `gorm:"column:customer_id;not null"`
 	TotalAmount float64     `gorm:"column:total_amount;type:numeric(12,2);not null"`
 	Items       []OrderItem `gorm:"foreignKey:OrderID"`
-	CreatedAt   time.Time   `gorm:"not null"`
-	UpdatedAt   time.Time   `gorm:"not null"`
+	commonmodel.AuditFields
 }
 
 func (Order) TableName() string {

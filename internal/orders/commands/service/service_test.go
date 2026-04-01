@@ -7,6 +7,7 @@ import (
 	"time"
 
 	commonapi "go-gin-ecommerce/internal/common/api"
+	commonmodel "go-gin-ecommerce/internal/common/model"
 	"go-gin-ecommerce/internal/orders/commands/repository"
 	"go-gin-ecommerce/internal/orders/model"
 )
@@ -22,9 +23,11 @@ func TestCancelTransitionsPendingOrder(t *testing.T) {
 			}
 
 			order := model.Order{
-				ID:        id,
-				Status:    "cancelled",
-				UpdatedAt: updatedAt,
+				ID:     id,
+				Status: "cancelled",
+				AuditFields: commonmodel.AuditFields{
+					UpdatedAt: updatedAt,
+				},
 			}
 			if order.Status != "cancelled" {
 				t.Fatalf("expected cancelled status, got %q", order.Status)
